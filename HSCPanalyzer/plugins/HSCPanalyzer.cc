@@ -95,9 +95,9 @@ class HSCPanalyzer : public edm::EDAnalyzer {
    public:
       explicit HSCPanalyzer(const edm::ParameterSet&);
       ~HSCPanalyzer();
-
+      edm::ESHandle <RPCGeometry> rpcGeo;
       static void fillDescriptions(edm::ConfigurationDescriptions& descriptions);
-
+      virtual void beginRun(const edm::Run&, const edm::EventSetup&);
 
    private:
       virtual void beginJob() override;
@@ -114,9 +114,8 @@ class HSCPanalyzer : public edm::EDAnalyzer {
       TH2D* fHistSTauEtaBeta;
       TH2D* fHistEta;
       TH1D* fHistdtof;
+      TH1D* fHistdtofHits;  
       TH1D* fHistAcc;
-      //virtual void beginRun(edm::Run const&, edm::EventSetup const&) override;
-      //virtual void endRun(edm::Run const&, edm::EventSetup const&) override;
       //virtual void beginLuminosityBlock(edm::LuminosityBlock const&, edm::EventSetup const&) override;
       //virtual void endLuminosityBlock(edm::LuminosityBlock const&, edm::EventSetup const&) override;
 
@@ -136,7 +135,7 @@ using namespace std;
 // constructors and destructor
 //
 HSCPanalyzer::HSCPanalyzer(const edm::ParameterSet& iConfig)
-  : fHistSTauMass(0), fHistSTauEta(0),fHistSTauBarEta(0),  fHistSTauBeta(0), fHistSTauPhi(0), fHistAngle(0), fHistDeltaPhi(0), fHistSTauEtaBeta(0), fHistEta(0), fHistdtof(0), fHistAcc(0)
+  : fHistSTauMass(0), fHistSTauEta(0),fHistSTauBarEta(0),  fHistSTauBeta(0), fHistSTauPhi(0), fHistAngle(0), fHistDeltaPhi(0), fHistSTauEtaBeta(0), fHistEta(0), fHistdtof(0), fHistdtofHits(0), fHistAcc(0)
 {
    //now do what ever initialization is needed
 
@@ -160,9 +159,6 @@ HSCPanalyzer::~HSCPanalyzer()
 void
 HSCPanalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
 {
- //edm::ESHandle <RPCGeometry> rpcGeo;
-   //iSetup.get<MuonGeometryRecord>().get(rpcGeo);
-
    Handle< GenEventInfoProduct > GetInfoHandle;
    iEvent.getByLabel( "generator", GetInfoHandle);
 
@@ -258,29 +254,28 @@ HSCPanalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
    for(vector<PSimHit>::const_iterator iHit = theSimHits.begin(); iHit != theSimHits.end(); iHit++){
    //   if(abs((*iHit).particleType())== 13) cout << "Muon here!"<< endl;
    //}
-      if(abs((*iHit).particleType())== 13) {
+      if((int)abs((*iHit).particleType())== 13) {
          DetId theDetUnitId = DetId((*iHit).detUnitId());
          DetId simdetid= DetId((*iHit).detUnitId());
-         cout << "Muon here!"<< (simdetid.det()==DetId::Muon) << theDetUnitId.subdetId() << endl;
-         //DetId
-      }
-   }
-     /*    if(simdetid.det()==DetId::Muon &&  simdetid.subdetId()== MuonSubdetId::RPC){
+         if(simdetid.det()==DetId::Muon) cout << "Muon detector" << endl;
+         if(simdetid.det()==DetId::Muon &&  simdetid.subdetId()== MuonSubdetId::RPC){
 
             RPCDetId rollId(theDetUnitId);
             RPCGeomServ rpcsrv(rollId);
+
+            cout << "here" << endl;
 
             const RPCRoll * rollasociated = rpcGeo->roll(rollId);
             const BoundPlane & RPCSurface = rollasociated->surface();
 
             //GlobalPoint SimHitInGlobal = RPCSurface.toGlobal((*iHit).localPosition());
-           if(rollId.region()==0) continue; //skip barrel
-           if(rollId.ring()!=1) continue; //leave only ring 1
-
-           if(rollId.station()==1) {cout << "hit in ring1, station 1. tof is: " << (*iHit).timeOfFlight()<< endl; }
+           //if(rollId.region()==0) continue; //skip barrel
+           //if(rollId.ring()!=1) continue; //leave only ring
+            fHistdtofHits->Fill((*iHit).timeOfFlight());
+            if(rollId.station()==1) {cout << "hit in station 1. tof is: " << (*iHit).timeOfFlight()<< endl; }
          }
       }
-   }*/
+   }
 
 #ifdef THIS_IS_AN_EVENT_EXAMPLE
    Handle<ExampleData> pIn;
@@ -294,12 +289,12 @@ HSCPanalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
 }
 
 // ------------ method called once each job just before starting event loop  ------------
-//G: void
-//G: analyzer::beginRun(const edm::Run& run, const edm::EventSetup& iSetup)
-//G: {
-//G:      iSetup.get<MuonGeometryRecord>().get(rpcGeo);
+ void
+  HSCPanalyzer::beginRun(const edm::Run& run, const edm::EventSetup& iSetup)
+ {
+      iSetup.get<MuonGeometryRecord>().get(rpcGeo);
 
-//G: }
+ }
 // ------------ method called once each job just before starting event loop  ------------
 void 
 HSCPanalyzer::beginJob()
@@ -315,6 +310,7 @@ HSCPanalyzer::beginJob()
    fHistAngle = fs->make<TH1D>("HistAngle", "sTau-sTau bar angle",150, 0.,3.15);
    fHistDeltaPhi = fs->make<TH1D>("HistDeltaPhi","abs(Phi(sTau)-Phi(sTauBar))",150,0.,3.15);
    fHistdtof = fs->make<TH1D>("Histdtof","dtof",150, 0.,40000.);
+   fHistdtofHits = fs->make<TH1D>("HistdtofHits","dtofHits",150,0.0,400.);
    fHistAcc = fs->make<TH1D>("HistoAcc","Acceptance ring 1",10,0,10);
    return ;
 }
@@ -326,12 +322,6 @@ HSCPanalyzer::endJob()
 }
 
 // ------------ method called when starting to processes a run  ------------
-/*
-void 
-HSCPanalyzer::beginRun(edm::Run const&, edm::EventSetup const&)
-{
-}
-*/
 
 // ------------ method called when ending the processing of a run  ------------
 /*
