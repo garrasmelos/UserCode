@@ -103,7 +103,6 @@ class HSCPanalyzer : public edm::EDAnalyzer {
       virtual void beginJob() override;
       virtual void analyze(const edm::Event&, const edm::EventSetup&) override;
       virtual void endJob() override;
-
       TH1D* fHistSTauMass;
       TH1D* fHistSTauEta;
       TH1D* fHistSTauBarEta;
@@ -116,10 +115,24 @@ class HSCPanalyzer : public edm::EDAnalyzer {
       TH1D* fHistdtof;
       TH1D* fHistdtofHits;  
       TH1D* fHistAcc;
+      TH1D* fHistdtofBarrel1;
+      TH1D* fHistdtofBarrel2;
+      TH1D* fHistdtofBarrel3;
+      TH1D* fHistdtofBarrel4;
+      TH1D* fHistdtofEndCapF1;
+      TH1D* fHistdtofEndCapF2;
+      TH1D* fHistdtofEndCapF3;
+      TH1D* fHistdtofEndCapF4;
+      TH1D* fHistdtofEndCapB1;
+      TH1D* fHistdtofEndCapB2;
+      TH1D* fHistdtofEndCapB3;
+      TH1D* fHistdtofEndCapB4;
       //virtual void beginLuminosityBlock(edm::LuminosityBlock const&, edm::EventSetup const&) override;
       //virtual void endLuminosityBlock(edm::LuminosityBlock const&, edm::EventSetup const&) override;
 
       // ----------member data ---------------------------
+      edm::EDGetTokenT<std::vector<PSimHit>> hitsToken_;
+
 };
 
 //
@@ -135,7 +148,8 @@ using namespace std;
 // constructors and destructor
 //
 HSCPanalyzer::HSCPanalyzer(const edm::ParameterSet& iConfig)
-  : fHistSTauMass(0), fHistSTauEta(0),fHistSTauBarEta(0),  fHistSTauBeta(0), fHistSTauPhi(0), fHistAngle(0), fHistDeltaPhi(0), fHistSTauEtaBeta(0), fHistEta(0), fHistdtof(0), fHistdtofHits(0), fHistAcc(0)
+  : fHistSTauMass(0), fHistSTauEta(0),fHistSTauBarEta(0),  fHistSTauBeta(0), fHistSTauPhi(0), fHistAngle(0), fHistDeltaPhi(0), fHistSTauEtaBeta(0), fHistEta(0), fHistdtof(0), fHistdtofHits(0), fHistAcc(0), fHistdtofBarrel1(0), fHistdtofBarrel2(0), fHistdtofBarrel3(0), fHistdtofBarrel4(0), fHistdtofEndCapF1(0), fHistdtofEndCapF2(0), fHistdtofEndCapF3(0), fHistdtofEndCapF4(0), fHistdtofEndCapB1(0), fHistdtofEndCapB2(0), fHistdtofEndCapB3(0), fHistdtofEndCapB4(0),
+   hitsToken_(consumes<std::vector<PSimHit>>(iConfig.getParameter<edm::InputTag>("hitsLabel")))
 {
    //now do what ever initialization is needed
 
@@ -162,17 +176,12 @@ HSCPanalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
    Handle< GenEventInfoProduct > GetInfoHandle;
    iEvent.getByLabel( "generator", GetInfoHandle);
 
-   vector< Handle<PSimHitContainer> > theSimHitContainers;
-   iEvent.getManyByType(theSimHitContainers);
-   cout <<"The number of SimHits in this event are: " << theSimHitContainers.size() << endl;
-
-
-   //double qScale = GetInfoHandle->qScale();
-   //cout << "qScale = " << qScale << endl;
-
    Handle< HepMCProduct > EvtHandle;
    iEvent.getByLabel("generator", EvtHandle);
    const HepMC::GenEvent* Evt = EvtHandle->GetEvent();
+
+   Handle< std::vector<PSimHit>> hits;
+   iEvent.getByToken(hitsToken_, hits);
 
    HepMC::GenParticle* sTau=0;
    HepMC::GenParticle* sTauBar=0;
@@ -192,27 +201,27 @@ HSCPanalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
    for (HepMC::GenEvent::vertex_const_iterator vit = Evt->vertices_begin(); vit != Evt->vertices_end(); vit++){
       for(HepMC::GenVertex::particles_out_const_iterator pout=(*vit)->particles_out_const_begin(); pout!=(*vit)->particles_out_const_end(); pout++){
          if( (*pout)->pdg_id() == 1000015 ){
-       sTau = (*pout);
-    }
-    if( (*pout)->pdg_id() == -1000015 ){
-       sTauBar = (*pout);
-    }
-    if(sTauBar!=0 && sTau!=0){
+            sTau = (*pout);
+         }
+         if( (*pout)->pdg_id() == -1000015 ){
+            sTauBar = (*pout);
+         }
+         if(sTauBar!=0 && sTau!=0){
             sTau_p4.SetPxPyPzE(sTau->momentum().px(),sTau->momentum().py(),sTau->momentum().pz(),sTau->momentum().e());
             sTau_p3 = HepMC::ThreeVector((sTau->momentum().px()),(sTau->momentum().py()),(sTau->momentum().pz()));
             sTauP = sTau_p3.r();
             sTauMass= sTau_p4.M();
             sTauBeta= sqrt(sTauP*sTauP/(sTauP*sTauP+sTauMass*sTauMass));
             dtof =(d/c)*(1/sTauBeta-1);
-       fHistdtof->Fill(dtof);
+            fHistdtof->Fill(dtof);
             fHistSTauMass->Fill(sTauMass);
             fHistSTauEta->Fill(sTau_p4.Eta());
             fHistSTauEtaBeta->Fill(sTauBeta,abs(sTau_p4.Eta()));
-       fHistSTauPhi->Fill(sTau_p4.Phi());
+            fHistSTauPhi->Fill(sTau_p4.Phi());
             fHistSTauBeta->Fill(sTauBeta);
             if(abs(sTau_p4.Eta())>1.6){
-          fHistAcc->Fill(1.);
-          if(dtof>50) fHistAcc->Fill(2.);
+               fHistAcc->Fill(1.);
+               if(dtof>50) fHistAcc->Fill(2.);
                if(dtof>100) fHistAcc->Fill(3.);
                if(dtof>200) fHistAcc->Fill(4.);
                if(dtof>1000) fHistAcc->Fill(5.);
@@ -221,24 +230,22 @@ HSCPanalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
                if(dtof>10000) fHistAcc->Fill(8.);
                if(dtof>25000) fHistAcc->Fill(9.);
             }
-       cout << sTau->pdg_id()<<"\t"<<sTau_p4.Phi()<<"\t"<<sTau_p4.Eta() << endl;
-
             sTauBar_p4.SetPxPyPzE(sTauBar->momentum().px(),sTauBar->momentum().py(),sTauBar->momentum().pz(),sTauBar->momentum().e());
             fHistSTauBarEta->Fill(sTauBar_p4.Eta());
             fHistEta->Fill(sTau_p4.Eta(),sTauBar_p4.Eta());
 
-       angle = sTauBar_p4.Angle(sTau_p4.Vect());
-       fHistAngle->Fill(angle);
-       if(sTau_p4.Phi()<0){
-          if(sTauBar_p4.Phi()<0)deltaPhi = abs(sTau_p4.Phi()-sTauBar_p4.Phi());
-          else deltaPhi = abs(sTau_p4.Phi()+2*pi-sTauBar_p4.Phi());
-              } else {
+            angle = sTauBar_p4.Angle(sTau_p4.Vect());
+            fHistAngle->Fill(angle);
+            if(sTau_p4.Phi()<0){
+               if(sTauBar_p4.Phi()<0)deltaPhi = abs(sTau_p4.Phi()-sTauBar_p4.Phi());
+               else deltaPhi = abs(sTau_p4.Phi()+2*pi-sTauBar_p4.Phi());
+            } else {
                if(sTauBar_p4.Phi()<0)deltaPhi = abs(sTauBar_p4.Phi()+2*pi-sTau_p4.Phi());
                else deltaPhi = abs(sTau_p4.Phi()-sTauBar_p4.Phi());
-        }
-        fHistDeltaPhi->Fill(deltaPhi);
-        break;
-    }
+            }
+            fHistDeltaPhi->Fill(deltaPhi);
+            break;
+         }
       }
       if (sTauBar!=0 && sTau!=0){
          break;
@@ -246,33 +253,30 @@ HSCPanalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
 
    }
 
-   vector<PSimHit> theSimHits;
-   for(int i=0; i < int(theSimHitContainers.size());i++){
-      theSimHits.insert(theSimHits.end(),theSimHitContainers.at(i)->begin(), theSimHitContainers.at(i)->end());
-   }
-
-   for(vector<PSimHit>::const_iterator iHit = theSimHits.begin(); iHit != theSimHits.end(); iHit++){
-   //   if(abs((*iHit).particleType())== 13) cout << "Muon here!"<< endl;
-   //}
-      if((int)abs((*iHit).particleType())== 13) {
+   for(vector<PSimHit>::const_iterator iHit = hits->begin(); iHit != hits->end(); iHit++){
+      if((int)abs((*iHit).particleType())== 1000015) {
          DetId theDetUnitId = DetId((*iHit).detUnitId());
          DetId simdetid= DetId((*iHit).detUnitId());
-         if(simdetid.det()==DetId::Muon) cout << "Muon detector" << endl;
-         if(simdetid.det()==DetId::Muon &&  simdetid.subdetId()== MuonSubdetId::RPC){
 
+         if(simdetid.det()==DetId::Muon &&  simdetid.subdetId()== MuonSubdetId::RPC){
             RPCDetId rollId(theDetUnitId);
             RPCGeomServ rpcsrv(rollId);
-
-            cout << "here" << endl;
-
             const RPCRoll * rollasociated = rpcGeo->roll(rollId);
             const BoundPlane & RPCSurface = rollasociated->surface();
-
             //GlobalPoint SimHitInGlobal = RPCSurface.toGlobal((*iHit).localPosition());
-           //if(rollId.region()==0) continue; //skip barrel
-           //if(rollId.ring()!=1) continue; //leave only ring
-            fHistdtofHits->Fill((*iHit).timeOfFlight());
-            if(rollId.station()==1) {cout << "hit in station 1. tof is: " << (*iHit).timeOfFlight()<< endl; }
+            if(rollId.station()==1 && rollId.region()==1) fHistdtofHits->Fill((*iHit).timeOfFlight());
+            if(rollId.station()==1 && rollId.region()==0) fHistdtofBarrel1->Fill((*iHit).timeOfFlight());
+            if(rollId.station()==2 && rollId.region()==0) fHistdtofBarrel2->Fill((*iHit).timeOfFlight());
+            if(rollId.station()==3 && rollId.region()==0) fHistdtofBarrel3->Fill((*iHit).timeOfFlight());
+            if(rollId.station()==4 && rollId.region()==0) fHistdtofBarrel4->Fill((*iHit).timeOfFlight());
+            if(rollId.station()==1 && rollId.region()==1) fHistdtofEndCapF1->Fill((*iHit).timeOfFlight());
+            if(rollId.station()==2 && rollId.region()==1) fHistdtofEndCapF2->Fill((*iHit).timeOfFlight());
+            if(rollId.station()==3 && rollId.region()==1) fHistdtofEndCapF3->Fill((*iHit).timeOfFlight());
+            if(rollId.station()==4 && rollId.region()==1) fHistdtofEndCapF4->Fill((*iHit).timeOfFlight());
+            if(rollId.station()==1 && rollId.region()==-1) fHistdtofEndCapB1->Fill((*iHit).timeOfFlight());
+            if(rollId.station()==2 && rollId.region()==-1) fHistdtofEndCapB2->Fill((*iHit).timeOfFlight());
+            if(rollId.station()==3 && rollId.region()==-1) fHistdtofEndCapB3->Fill((*iHit).timeOfFlight());
+            if(rollId.station()==4 && rollId.region()==-1) fHistdtofEndCapB4->Fill((*iHit).timeOfFlight());
          }
       }
    }
@@ -312,6 +316,18 @@ HSCPanalyzer::beginJob()
    fHistdtof = fs->make<TH1D>("Histdtof","dtof",150, 0.,40000.);
    fHistdtofHits = fs->make<TH1D>("HistdtofHits","dtofHits",150,0.0,400.);
    fHistAcc = fs->make<TH1D>("HistoAcc","Acceptance ring 1",10,0,10);
+   fHistdtofBarrel1 = fs->make<TH1D>("HistodtofBarrelStation1","Dtof Barrel Station 1",150,0.,400.);
+   fHistdtofBarrel2 = fs->make<TH1D>("HistodtofBarrelStation2","Dtof Barrel Station 2",150,0.,400.);
+   fHistdtofBarrel3 = fs->make<TH1D>("HistodtofBarrelStation3","Dtof Barrel Station 3",150,0.,400.);
+   fHistdtofBarrel4 = fs->make<TH1D>("HistodtofBarrelStation4","Dtof Barrel Station 4",150,0.,400.);
+   fHistdtofEndCapF1 = fs->make<TH1D>("HistodtofEndCapStationF1","Dtof EndCap Station 1(Forward)",150,0.,400.); 
+   fHistdtofEndCapF2 = fs->make<TH1D>("HistodtofEndCapStationF2","Dtof EndCap Station 2(Forward)",150,0.,400.);
+   fHistdtofEndCapF3 = fs->make<TH1D>("HistodtofEndCapStationF3","Dtof EndCap Station 3(Forward)",150,0.,400.);
+   fHistdtofEndCapF4 = fs->make<TH1D>("HistodtofEndCapStationF4","Dtof EndCap Station 4(Forward)",150,0.,400.);
+   fHistdtofEndCapB1 = fs->make<TH1D>("HistodtofEndCapStationB1","Dtof EndCap Station 1(Backward)",150,0.,400.);
+   fHistdtofEndCapB2 = fs->make<TH1D>("HistodtofEndCapStationB2","Dtof EndCap Station 2(Backward)",150,0.,400.);
+   fHistdtofEndCapB3 = fs->make<TH1D>("HistodtofEndCapStationB3","Dtof EndCap Station 3(Backward)",150,0.,400.);
+   fHistdtofEndCapB4 = fs->make<TH1D>("HistodtofEndCapStationB4","Dtof EndCap Station 4(Backward)",150,0.,400.); 
    return ;
 }
 
