@@ -98,23 +98,23 @@ class HSCPSIMHits : public edm::EDAnalyzer {
       TH1D* fHistDeltaPhi;
       TH2D* fHistSTauEtaBeta;
       TH2D* fHistEta;
-      TH1D* fHistdtof;
-      TH1D* fHistdtofHits;
+      TH1D* fHisttof;
+      TH1D* fHisttofHits;
       TH1D* fHistAcc;
-      TH1D* fHistdtofBarrel1_in;
-      TH1D* fHistdtofBarrel1_out;
-      TH1D* fHistdtofBarrel2_in;
-      TH1D* fHistdtofBarrel2_out;
-      TH1D* fHistdtofBarrel3;
-      TH1D* fHistdtofBarrel4;
-      TH1D* fHistdtofEndCapF1;
-      TH1D* fHistdtofEndCapF2;
-      TH1D* fHistdtofEndCapF3;
-      TH1D* fHistdtofEndCapF4;
-      TH1D* fHistdtofEndCapB1;
-      TH1D* fHistdtofEndCapB2;
-      TH1D* fHistdtofEndCapB3;
-      TH1D* fHistdtofEndCapB4;
+      TH1D* fHisttofBarrel1_in;
+      TH1D* fHisttofBarrel1_out;
+      TH1D* fHisttofBarrel2_in;
+      TH1D* fHisttofBarrel2_out;
+      TH1D* fHisttofBarrel3;
+      TH1D* fHisttofBarrel4;
+      TH1D* fHisttofEndCapF1;
+      TH1D* fHisttofEndCapF2;
+      TH1D* fHisttofEndCapF3;
+      TH1D* fHisttofEndCapF4;
+      TH1D* fHisttofEndCapB1;
+      TH1D* fHisttofEndCapB2;
+      TH1D* fHisttofEndCapB3;
+      TH1D* fHisttofEndCapB4;
       edm::EDGetTokenT<std::vector<PSimHit>> hitsToken_;
 };
 
@@ -131,7 +131,7 @@ using namespace std;
 // constructors and destructor
 //
 HSCPSIMHits::HSCPSIMHits(const edm::ParameterSet& iConfig)
-: fHistSTauMass(0), fHistSTauEta(0),fHistSTauBarEta(0),  fHistSTauBeta(0), fHistSTauPhi(0), fHistAngle(0), fHistDeltaPhi(0), fHistSTauEtaBeta(0), fHistEta(0), fHistdtof(0), fHistdtofHits(0), fHistAcc(0), fHistdtofBarrel1_in(0), fHistdtofBarrel1_out(0), fHistdtofBarrel2_in(0), fHistdtofBarrel2_out(0), fHistdtofBarrel3(0), fHistdtofBarrel4(0), fHistdtofEndCapF1(0), fHistdtofEndCapF2(0), fHistdtofEndCapF3(0), fHistdtofEndCapF4(0), fHistdtofEndCapB1(0), fHistdtofEndCapB2(0), fHistdtofEndCapB3(0), fHistdtofEndCapB4(0),
+: fHistSTauMass(0), fHistSTauEta(0),fHistSTauBarEta(0),  fHistSTauBeta(0), fHistSTauPhi(0), fHistAngle(0), fHistDeltaPhi(0), fHistSTauEtaBeta(0), fHistEta(0), fHisttof(0), fHisttofHits(0), fHistAcc(0), fHisttofBarrel1_in(0), fHisttofBarrel1_out(0), fHisttofBarrel2_in(0), fHisttofBarrel2_out(0), fHisttofBarrel3(0), fHisttofBarrel4(0), fHisttofEndCapF1(0), fHisttofEndCapF2(0), fHisttofEndCapF3(0), fHisttofEndCapF4(0), fHisttofEndCapB1(0), fHisttofEndCapB2(0), fHisttofEndCapB3(0), fHisttofEndCapB4(0),
    hitsToken_(consumes<std::vector<PSimHit>>(iConfig.getParameter<edm::InputTag>("hitsLabel")))
 {
    //now do what ever initialization is needed
@@ -171,7 +171,7 @@ HSCPSIMHits::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
    TLorentzVector sTau_p4;
    HepMC::ThreeVector sTau_p3;
    TLorentzVector sTauBar_p4;
-   double dtof=0;
+   double tof=0;
    double sTauP=0;
    double sTauMass=0;
    double sTauBeta=0;
@@ -195,8 +195,8 @@ HSCPSIMHits::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
             sTauP = sTau_p3.r();
             sTauMass= sTau_p4.M();
             sTauBeta= sqrt(sTauP*sTauP/(sTauP*sTauP+sTauMass*sTauMass));
-            dtof =(d/c)*(1/sTauBeta-1);
-            fHistdtof->Fill(dtof);
+            tof =(d/c)*(1/sTauBeta-1);
+            fHisttof->Fill(tof);
             fHistSTauMass->Fill(sTauMass);
             fHistSTauEta->Fill(sTau_p4.Eta());
             fHistSTauEtaBeta->Fill(sTauBeta,abs(sTau_p4.Eta()));
@@ -204,14 +204,14 @@ HSCPSIMHits::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
             fHistSTauBeta->Fill(sTauBeta);
             if(abs(sTau_p4.Eta())>1.6){
                fHistAcc->Fill(1.);
-               if(dtof>50) fHistAcc->Fill(2.);
-               if(dtof>100) fHistAcc->Fill(3.);
-               if(dtof>200) fHistAcc->Fill(4.);
-               if(dtof>1000) fHistAcc->Fill(5.);
-               if(dtof>2000) fHistAcc->Fill(6.);
-               if(dtof>4000) fHistAcc->Fill(7.);
-               if(dtof>10000) fHistAcc->Fill(8.);
-               if(dtof>25000) fHistAcc->Fill(9.);
+               if(tof>50) fHistAcc->Fill(2.);
+               if(tof>100) fHistAcc->Fill(3.);
+               if(tof>200) fHistAcc->Fill(4.);
+               if(tof>1000) fHistAcc->Fill(5.);
+               if(tof>2000) fHistAcc->Fill(6.);
+               if(tof>4000) fHistAcc->Fill(7.);
+               if(tof>10000) fHistAcc->Fill(8.);
+               if(tof>25000) fHistAcc->Fill(9.);
             }
             sTauBar_p4.SetPxPyPzE(sTauBar->momentum().px(),sTauBar->momentum().py(),sTauBar->momentum().pz(),sTauBar->momentum().e());
             fHistSTauBarEta->Fill(sTauBar_p4.Eta());
@@ -246,21 +246,21 @@ HSCPSIMHits::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
             const RPCRoll * rollasociated = rpcGeo->roll(rollId);
             const BoundPlane & RPCSurface = rollasociated->surface();
             //GlobalPoint SimHitInGlobal = RPCSurface.toGlobal((*iHit).localPosition());
-            if(rollId.station()==1 && rollId.region()==1) fHistdtofHits->Fill((*iHit).timeOfFlight());
-            if(rollId.station()==1 && rollId.region()==0 && rollId.layer()==1) fHistdtofBarrel1_in->Fill((*iHit).timeOfFlight());
-            if(rollId.station()==1 && rollId.region()==0 && rollId.layer()==2) fHistdtofBarrel1_out->Fill((*iHit).timeOfFlight());
-            if(rollId.station()==2 && rollId.region()==0 && rollId.layer()==1) fHistdtofBarrel2_in->Fill((*iHit).timeOfFlight());
-            if(rollId.station()==2 && rollId.region()==0 && rollId.layer()==2) fHistdtofBarrel2_out->Fill((*iHit).timeOfFlight());
-            if(rollId.station()==3 && rollId.region()==0) fHistdtofBarrel3->Fill((*iHit).timeOfFlight());
-            if(rollId.station()==4 && rollId.region()==0) fHistdtofBarrel4->Fill((*iHit).timeOfFlight());
-            if(rollId.station()==1 && rollId.region()==1) fHistdtofEndCapF1->Fill((*iHit).timeOfFlight());
-            if(rollId.station()==2 && rollId.region()==1) fHistdtofEndCapF2->Fill((*iHit).timeOfFlight());
-            if(rollId.station()==3 && rollId.region()==1) fHistdtofEndCapF3->Fill((*iHit).timeOfFlight());
-            if(rollId.station()==4 && rollId.region()==1) fHistdtofEndCapF4->Fill((*iHit).timeOfFlight());
-            if(rollId.station()==1 && rollId.region()==-1) fHistdtofEndCapB1->Fill((*iHit).timeOfFlight());
-            if(rollId.station()==2 && rollId.region()==-1) fHistdtofEndCapB2->Fill((*iHit).timeOfFlight());
-            if(rollId.station()==3 && rollId.region()==-1) fHistdtofEndCapB3->Fill((*iHit).timeOfFlight());
-            if(rollId.station()==4 && rollId.region()==-1) fHistdtofEndCapB4->Fill((*iHit).timeOfFlight());
+            if(rollId.station()==1 && rollId.region()==1) fHisttofHits->Fill((*iHit).timeOfFlight());
+            if(rollId.station()==1 && rollId.region()==0 && rollId.layer()==1) fHisttofBarrel1_in->Fill((*iHit).timeOfFlight());
+            if(rollId.station()==1 && rollId.region()==0 && rollId.layer()==2) fHisttofBarrel1_out->Fill((*iHit).timeOfFlight());
+            if(rollId.station()==2 && rollId.region()==0 && rollId.layer()==1) fHisttofBarrel2_in->Fill((*iHit).timeOfFlight());
+            if(rollId.station()==2 && rollId.region()==0 && rollId.layer()==2) fHisttofBarrel2_out->Fill((*iHit).timeOfFlight());
+            if(rollId.station()==3 && rollId.region()==0) fHisttofBarrel3->Fill((*iHit).timeOfFlight());
+            if(rollId.station()==4 && rollId.region()==0) fHisttofBarrel4->Fill((*iHit).timeOfFlight());
+            if(rollId.station()==1 && rollId.region()==1) fHisttofEndCapF1->Fill((*iHit).timeOfFlight());
+            if(rollId.station()==2 && rollId.region()==1) fHisttofEndCapF2->Fill((*iHit).timeOfFlight());
+            if(rollId.station()==3 && rollId.region()==1) fHisttofEndCapF3->Fill((*iHit).timeOfFlight());
+            if(rollId.station()==4 && rollId.region()==1) fHisttofEndCapF4->Fill((*iHit).timeOfFlight());
+            if(rollId.station()==1 && rollId.region()==-1) fHisttofEndCapB1->Fill((*iHit).timeOfFlight());
+            if(rollId.station()==2 && rollId.region()==-1) fHisttofEndCapB2->Fill((*iHit).timeOfFlight());
+            if(rollId.station()==3 && rollId.region()==-1) fHisttofEndCapB3->Fill((*iHit).timeOfFlight());
+            if(rollId.station()==4 && rollId.region()==-1) fHisttofEndCapB4->Fill((*iHit).timeOfFlight());
          }
       }
    }
@@ -286,23 +286,23 @@ HSCPSIMHits::beginJob()
    fHistSTauPhi = fs->make<TH1D>("HistSTauPhi","sTau #phi", 150, -3.15,3.15);
    fHistAngle = fs->make<TH1D>("HistAngle", "sTau-sTau bar angle",150, 0.,3.15);
    fHistDeltaPhi = fs->make<TH1D>("HistDeltaPhi","abs(Phi(sTau)-Phi(sTauBar))",150,0.,3.15);
-   fHistdtof = fs->make<TH1D>("Histdtof","dtof",150, 0.,40000.);
-   fHistdtofHits = fs->make<TH1D>("HistdtofHits","dtofHits",150,0.0,400.);
+   fHisttof = fs->make<TH1D>("Histtof","tof",150, 0.,40000.);
+   fHisttofHits = fs->make<TH1D>("HisttofHits","tofHits",150,0.0,400.);
    fHistAcc = fs->make<TH1D>("HistoAcc","Acceptance ring 1",10,0,10);
-   fHistdtofBarrel1_in = fs->make<TH1D>("HistodtofBarrelStation1_in","Dtof Barrel Station 1 in",150,0.,400.);
-   fHistdtofBarrel1_out = fs->make<TH1D>("HistodtofBarrelStation1_out","Dtof Barrel Station 1 out",150,0.,400.);
-   fHistdtofBarrel2_in = fs->make<TH1D>("HistodtofBarrelStation2_in","Dtof Barrel Station 2 in",150,0.,400.);
-   fHistdtofBarrel2_out = fs->make<TH1D>("HistodtofBarrelStation2_out","Dtof Barrel Station 2 out",150,0.,400.);
-   fHistdtofBarrel3 = fs->make<TH1D>("HistodtofBarrelStation3","Dtof Barrel Station 3",150,0.,400.);
-   fHistdtofBarrel4 = fs->make<TH1D>("HistodtofBarrelStation4","Dtof Barrel Station 4",150,0.,400.);
-   fHistdtofEndCapF1 = fs->make<TH1D>("HistodtofEndCapStationF1","Dtof EndCap Station 1(Forward)",150,0.,400.);
-   fHistdtofEndCapF2 = fs->make<TH1D>("HistodtofEndCapStationF2","Dtof EndCap Station 2(Forward)",150,0.,400.);
-   fHistdtofEndCapF3 = fs->make<TH1D>("HistodtofEndCapStationF3","Dtof EndCap Station 3(Forward)",150,0.,400.);
-   fHistdtofEndCapF4 = fs->make<TH1D>("HistodtofEndCapStationF4","Dtof EndCap Station 4(Forward)",150,0.,400.);
-   fHistdtofEndCapB1 = fs->make<TH1D>("HistodtofEndCapStationB1","Dtof EndCap Station 1(Backward)",150,0.,400.);
-   fHistdtofEndCapB2 = fs->make<TH1D>("HistodtofEndCapStationB2","Dtof EndCap Station 2(Backward)",150,0.,400.);
-   fHistdtofEndCapB3 = fs->make<TH1D>("HistodtofEndCapStationB3","Dtof EndCap Station 3(Backward)",150,0.,400.);
-   fHistdtofEndCapB4 = fs->make<TH1D>("HistodtofEndCapStationB4","Dtof EndCap Station 4(Backward)",150,0.,400.);
+   fHisttofBarrel1_in = fs->make<TH1D>("HistotofBarrelStation1_in","Dtof Barrel Station 1 in",150,0.,400.);
+   fHisttofBarrel1_out = fs->make<TH1D>("HistotofBarrelStation1_out","Dtof Barrel Station 1 out",150,0.,400.);
+   fHisttofBarrel2_in = fs->make<TH1D>("HistotofBarrelStation2_in","Dtof Barrel Station 2 in",150,0.,400.);
+   fHisttofBarrel2_out = fs->make<TH1D>("HistotofBarrelStation2_out","Dtof Barrel Station 2 out",150,0.,400.);
+   fHisttofBarrel3 = fs->make<TH1D>("HistotofBarrelStation3","Dtof Barrel Station 3",150,0.,400.);
+   fHisttofBarrel4 = fs->make<TH1D>("HistotofBarrelStation4","Dtof Barrel Station 4",150,0.,400.);
+   fHisttofEndCapF1 = fs->make<TH1D>("HistotofEndCapStationF1","Dtof EndCap Station 1(Forward)",150,0.,400.);
+   fHisttofEndCapF2 = fs->make<TH1D>("HistotofEndCapStationF2","Dtof EndCap Station 2(Forward)",150,0.,400.);
+   fHisttofEndCapF3 = fs->make<TH1D>("HistotofEndCapStationF3","Dtof EndCap Station 3(Forward)",150,0.,400.);
+   fHisttofEndCapF4 = fs->make<TH1D>("HistotofEndCapStationF4","Dtof EndCap Station 4(Forward)",150,0.,400.);
+   fHisttofEndCapB1 = fs->make<TH1D>("HistotofEndCapStationB1","Dtof EndCap Station 1(Backward)",150,0.,400.);
+   fHisttofEndCapB2 = fs->make<TH1D>("HistotofEndCapStationB2","Dtof EndCap Station 2(Backward)",150,0.,400.);
+   fHisttofEndCapB3 = fs->make<TH1D>("HistotofEndCapStationB3","Dtof EndCap Station 3(Backward)",150,0.,400.);
+   fHisttofEndCapB4 = fs->make<TH1D>("HistotofEndCapStationB4","Dtof EndCap Station 4(Backward)",150,0.,400.);
    return;
 }
 

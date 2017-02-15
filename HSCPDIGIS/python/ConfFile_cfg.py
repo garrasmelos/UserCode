@@ -27,6 +27,9 @@ process.source = cms.Source("PoolSource",
     )
 )
 process.load('test.HSCPDIGIS.CfiFile_cfi')
+process.TFileService = cms.Service("TFileService",
+                   fileName = cms.string("hTest.root")
+                   )
 #process.demo = cms.EDAnalyzer('HSCPDIGIS'
 #)
 
