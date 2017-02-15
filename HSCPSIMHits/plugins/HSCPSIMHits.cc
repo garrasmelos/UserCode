@@ -101,8 +101,10 @@ class HSCPSIMHits : public edm::EDAnalyzer {
       TH1D* fHistdtof;
       TH1D* fHistdtofHits;
       TH1D* fHistAcc;
-      TH1D* fHistdtofBarrel1;
-      TH1D* fHistdtofBarrel2;
+      TH1D* fHistdtofBarrel1_in;
+      TH1D* fHistdtofBarrel1_out;
+      TH1D* fHistdtofBarrel2_in;
+      TH1D* fHistdtofBarrel2_out;
       TH1D* fHistdtofBarrel3;
       TH1D* fHistdtofBarrel4;
       TH1D* fHistdtofEndCapF1;
@@ -129,7 +131,7 @@ using namespace std;
 // constructors and destructor
 //
 HSCPSIMHits::HSCPSIMHits(const edm::ParameterSet& iConfig)
-: fHistSTauMass(0), fHistSTauEta(0),fHistSTauBarEta(0),  fHistSTauBeta(0), fHistSTauPhi(0), fHistAngle(0), fHistDeltaPhi(0), fHistSTauEtaBeta(0), fHistEta(0), fHistdtof(0), fHistdtofHits(0), fHistAcc(0), fHistdtofBarrel1(0), fHistdtofBarrel2(0), fHistdtofBarrel3(0), fHistdtofBarrel4(0), fHistdtofEndCapF1(0), fHistdtofEndCapF2(0), fHistdtofEndCapF3(0), fHistdtofEndCapF4(0), fHistdtofEndCapB1(0), fHistdtofEndCapB2(0), fHistdtofEndCapB3(0), fHistdtofEndCapB4(0),
+: fHistSTauMass(0), fHistSTauEta(0),fHistSTauBarEta(0),  fHistSTauBeta(0), fHistSTauPhi(0), fHistAngle(0), fHistDeltaPhi(0), fHistSTauEtaBeta(0), fHistEta(0), fHistdtof(0), fHistdtofHits(0), fHistAcc(0), fHistdtofBarrel1_in(0), fHistdtofBarrel1_out(0), fHistdtofBarrel2_in(0), fHistdtofBarrel2_out(0), fHistdtofBarrel3(0), fHistdtofBarrel4(0), fHistdtofEndCapF1(0), fHistdtofEndCapF2(0), fHistdtofEndCapF3(0), fHistdtofEndCapF4(0), fHistdtofEndCapB1(0), fHistdtofEndCapB2(0), fHistdtofEndCapB3(0), fHistdtofEndCapB4(0),
    hitsToken_(consumes<std::vector<PSimHit>>(iConfig.getParameter<edm::InputTag>("hitsLabel")))
 {
    //now do what ever initialization is needed
@@ -245,8 +247,10 @@ HSCPSIMHits::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
             const BoundPlane & RPCSurface = rollasociated->surface();
             //GlobalPoint SimHitInGlobal = RPCSurface.toGlobal((*iHit).localPosition());
             if(rollId.station()==1 && rollId.region()==1) fHistdtofHits->Fill((*iHit).timeOfFlight());
-            if(rollId.station()==1 && rollId.region()==0) fHistdtofBarrel1->Fill((*iHit).timeOfFlight());
-            if(rollId.station()==2 && rollId.region()==0) fHistdtofBarrel2->Fill((*iHit).timeOfFlight());
+            if(rollId.station()==1 && rollId.region()==0 && rollId.layer()==1) fHistdtofBarrel1_in->Fill((*iHit).timeOfFlight());
+            if(rollId.station()==1 && rollId.region()==0 && rollId.layer()==2) fHistdtofBarrel1_out->Fill((*iHit).timeOfFlight());
+            if(rollId.station()==2 && rollId.region()==0 && rollId.layer()==1) fHistdtofBarrel2_in->Fill((*iHit).timeOfFlight());
+            if(rollId.station()==2 && rollId.region()==0 && rollId.layer()==2) fHistdtofBarrel2_out->Fill((*iHit).timeOfFlight());
             if(rollId.station()==3 && rollId.region()==0) fHistdtofBarrel3->Fill((*iHit).timeOfFlight());
             if(rollId.station()==4 && rollId.region()==0) fHistdtofBarrel4->Fill((*iHit).timeOfFlight());
             if(rollId.station()==1 && rollId.region()==1) fHistdtofEndCapF1->Fill((*iHit).timeOfFlight());
@@ -285,8 +289,10 @@ HSCPSIMHits::beginJob()
    fHistdtof = fs->make<TH1D>("Histdtof","dtof",150, 0.,40000.);
    fHistdtofHits = fs->make<TH1D>("HistdtofHits","dtofHits",150,0.0,400.);
    fHistAcc = fs->make<TH1D>("HistoAcc","Acceptance ring 1",10,0,10);
-   fHistdtofBarrel1 = fs->make<TH1D>("HistodtofBarrelStation1","Dtof Barrel Station 1",150,0.,400.);
-   fHistdtofBarrel2 = fs->make<TH1D>("HistodtofBarrelStation2","Dtof Barrel Station 2",150,0.,400.);
+   fHistdtofBarrel1_in = fs->make<TH1D>("HistodtofBarrelStation1_in","Dtof Barrel Station 1 in",150,0.,400.);
+   fHistdtofBarrel1_out = fs->make<TH1D>("HistodtofBarrelStation1_out","Dtof Barrel Station 1 out",150,0.,400.);
+   fHistdtofBarrel2_in = fs->make<TH1D>("HistodtofBarrelStation2_in","Dtof Barrel Station 2 in",150,0.,400.);
+   fHistdtofBarrel2_out = fs->make<TH1D>("HistodtofBarrelStation2_out","Dtof Barrel Station 2 out",150,0.,400.);
    fHistdtofBarrel3 = fs->make<TH1D>("HistodtofBarrelStation3","Dtof Barrel Station 3",150,0.,400.);
    fHistdtofBarrel4 = fs->make<TH1D>("HistodtofBarrelStation4","Dtof Barrel Station 4",150,0.,400.);
    fHistdtofEndCapF1 = fs->make<TH1D>("HistodtofEndCapStationF1","Dtof EndCap Station 1(Forward)",150,0.,400.);
