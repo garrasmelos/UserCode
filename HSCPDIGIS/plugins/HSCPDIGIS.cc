@@ -28,6 +28,7 @@
 #include "FWCore/Framework/interface/MakerMacros.h"
 
 #include "FWCore/ParameterSet/interface/ParameterSet.h"
+#include "FWCore/Framework/interface/ESHandle.h"
 
 #include <DataFormats/MuonDetId/interface/RPCDetId.h>
 #include "DataFormats/DetId/interface/DetId.h"
@@ -45,10 +46,14 @@
 #include <Geometry/RPCGeometry/interface/RPCGeometry.h>
 #include <Geometry/Records/interface/MuonGeometryRecord.h>
 #include <Geometry/CommonDetUnit/interface/GeomDet.h>
+#include "DataFormats/RPCDigi/interface/RPCDigiCollection.h"
+#include "DataFormats/RPCRecHit/interface/RPCRecHitCollection.h"
+#include "DataFormats/RPCDigi/interface/RPCDigi.h"
 
 #include "TMath.h"
 #include "TH1.h"
 #include "TTree.h"
+#include "TVector3.h"
 
 //
 // class declaration
@@ -73,21 +78,10 @@ class HSCPDIGIS : public edm::EDAnalyzer {
       //virtual void endLuminosityBlock(edm::LuminosityBlock const&, edm::EventSetup const&) override;
 
       // ----------member data ---------------------------
-      TH1D* fHisttofBarrel1_in;
-      TH1D* fHisttofBarrel1_out;
-      TH1D* fHisttofBarrel2_in;
-      TH1D* fHisttofBarrel2_out;
-      TH1D* fHisttofBarrel3;
-      TH1D* fHisttofBarrel4;
-      TH1D* fHisttofEndCapF1;
-      TH1D* fHisttofEndCapF2;
-      TH1D* fHisttofEndCapF3;
-      TH1D* fHisttofEndCapF4;
-      TH1D* fHisttofEndCapB1;
-      TH1D* fHisttofEndCapB2;
-      TH1D* fHisttofEndCapB3;
-      TH1D* fHisttofEndCapB4;
-      TH1D* fHistDiffTof; 
+      TH1D* fHistDiff2_3Tof;
+      TH1D* fHistDiff3_4Tof; 
+      TH1D* fHistDiff2_3Bx;
+      TH1D* fHistDiff3_4Bx;
       TTree* hscpTree;
       Int_t bx;
       Float_t tof;
@@ -98,6 +92,8 @@ class HSCPDIGIS : public edm::EDAnalyzer {
       
       
       edm::EDGetTokenT<edm::DetSetVector<RPCDigiSimLink>> digisToken_;
+      edm::EDGetTokenT<RPCDigiCollection> digis2Token_;
+      edm::EDGetTokenT<RPCRecHitCollection> recHitToken_;
 };
 
 //
@@ -113,8 +109,10 @@ using namespace std;
 // constructors and destructor
 //
 HSCPDIGIS::HSCPDIGIS(const edm::ParameterSet& iConfig)
-: fHisttofBarrel1_in(0), fHisttofBarrel1_out(0), fHisttofBarrel2_in(0), fHisttofBarrel2_out(0), fHisttofBarrel3(0), fHisttofBarrel4(0), fHisttofEndCapF1(0), fHisttofEndCapF2(0), fHisttofEndCapF3(0), fHisttofEndCapF4(0), fHisttofEndCapB1(0), fHisttofEndCapB2(0), fHisttofEndCapB3(0), fHisttofEndCapB4(0), fHistDiffTof(0),
-   digisToken_(consumes<edm::DetSetVector<RPCDigiSimLink>>(iConfig.getParameter<edm::InputTag>("digisLabel")))
+: fHistDiff2_3Tof(0), fHistDiff3_4Tof(0), fHistDiff2_3Bx(0), fHistDiff3_4Bx(0),
+   digisToken_(consumes<edm::DetSetVector<RPCDigiSimLink>>(iConfig.getParameter<edm::InputTag>("digisLabel"))),
+   digis2Token_(consumes<RPCDigiCollection>(iConfig.getParameter<edm::InputTag>("digis2Label"))),
+   recHitToken_(consumes<RPCRecHitCollection>(iConfig.getParameter<edm::InputTag>("recHitLabel")))
 {
    //now do what ever initialization is needed
 
@@ -141,8 +139,81 @@ HSCPDIGIS::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
   // using namespace edm;
    Handle<edm::DetSetVector<RPCDigiSimLink>> digislink;
    iEvent.getByToken(digisToken_, digislink);
-   //edm::ESHandle<RPCGeometry> rpcGeo;
-   //iSetup.get<MuonGeometryRecord>().get(rpcGeo);
+   
+   Handle<RPCDigiCollection> digis;
+   iEvent.getByToken(digis2Token_, digis);
+   
+   Handle<RPCRecHitCollection> rechits;
+   iEvent.getByToken(recHitToken_,rechits);
+   
+   edm::ESHandle<RPCGeometry> rpcGeo;
+   iSetup.get<MuonGeometryRecord>().get(rpcGeo);
+   
+   vector<vector<TVector3>> aPos; //array of positions.
+   for(RPCRecHitCollection::const_iterator rechit_it = rechits->begin(); rechit_it != rechits->end() ; rechit_it++)
+   {
+   	cout << "Bx (RecHit): " << rechit_it->BunchX() << endl;
+   	RPCDetId idRoll(rechit_it->rpcId());
+   	//cout << "Global position: " << rechit_it->globalPosition().x() << endl;
+   	LocalPoint lPos = rechit_it->localPosition();
+   	const RPCRoll* roll = rpcGeo->roll(idRoll);
+   	const BoundPlane& rollSurface = roll->surface();
+   	GlobalPoint gPos = rollSurface.toGlobal(lPos);
+   	
+   	cout << "Global Point: " << gPos.x() << " " << gPos.y() << " " << gPos.z() << endl;
+   	TVector3 pos(gPos.x(),gPos.x(),gPos.z());
+   	double phi1 = pos.Phi();
+   	double theta1 = pos.Theta();
+   	bool found = false;
+   	double dRmax = 1.;
+   	if(aPos.size()==0)
+   	{
+   		vector<TVector3> vPos;
+   		vPos.push_back(pos);
+   		aPos.push_back(vPos);
+   	}else
+   	{
+   		int ntks = aPos.size();
+   		for(int i=0; i < ntks ; i++)
+   		{
+   			double dTheta = theta1 - aPos[i][0].Theta();
+   			double dPhi = phi1 - aPos[i][0].Phi();
+   			double dR= TMath::Sqrt(dTheta*dTheta+dPhi*dPhi);
+   			if (dR < dRmax)
+   			{
+   				
+   				aPos[i].push_back(pos);
+   				found= true;
+   			}
+   		}
+   		if(!found)
+   		{
+   			vector<TVector3> vPos;
+   			vPos.push_back(pos);
+   			aPos.push_back(vPos);   			
+   		}	
+   	}
+   }
+   cout<< "Number of tracks found: " << aPos.size() << endl;
+   for(unsigned int j=0; j< aPos.size();j++)
+   {
+   	cout << "Track " << j << " has " <<aPos[j].size() << " hits." << endl;
+   	
+   }
+   
+   for(RPCDigiCollection::DigiRangeIterator detUnitIt = digis->begin(); detUnitIt != digis->end() ; detUnitIt++)
+   {
+   	const RPCDetId& id = (*detUnitIt).first;
+   	const RPCDigiCollection::Range& range = (*detUnitIt).second;
+   	cout << "######## STATION: " << id.station() << endl;
+   	
+   	for(RPCDigiCollection::const_iterator digi_it = range.first ; digi_it != range.second ; ++digi_it)
+   	{
+   		
+   		cout << "######## BX: " << digi_it->bx() << endl;
+   	}
+   }
+
    tof=0;
    bx=0;
    station=0;
@@ -156,34 +227,21 @@ HSCPDIGIS::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
          int particleId =itdigi->getParticleType();
 		 //bx = itdigi->getBx();
 		 //hscpTree->Fill();
-         if(TMath::Abs(particleId) == 1000015)
+         if(TMath::Abs(particleId) == 13 && itdigi->getTrackId()==1)
          {
             DetId theDetId = itdigi->getDetUnitId();
             RPCDetId rollId(theDetId);
             tof= itdigi->getTimeOfFlight();
             //const rpcRoll* roll = rpcGeo->roll(rpcId);
-            if(rollId.station()==1 && rollId.region()==0 && rollId.layer()==1) fHisttofBarrel1_in->Fill(tof);
-            if(rollId.station()==1 && rollId.region()==0 && rollId.layer()==2) fHisttofBarrel1_out->Fill(tof);
-            if(rollId.station()==2 && rollId.region()==0 && rollId.layer()==1) fHisttofBarrel2_in->Fill(tof);
-            if(rollId.station()==2 && rollId.region()==0 && rollId.layer()==2) fHisttofBarrel2_out->Fill(tof);
-            //if(rollId.station()==3 && rollId.region()==0) {fHisttofBarrel3->Fill(tof); cout << "Layer for station 3 in barrel regtion: " << rollId.layer() << endl;}
-            if(rollId.station()==3 && rollId.region()==0) fHisttofBarrel3->Fill(tof);
-            if(rollId.station()==4 && rollId.region()==0) fHisttofBarrel4->Fill(tof);
-            if(rollId.station()==1 && rollId.region()==1) fHisttofEndCapF1->Fill(tof);
-            if(rollId.station()==2 && rollId.region()==1) fHisttofEndCapF2->Fill(tof);
-            if(rollId.station()==3 && rollId.region()==1) fHisttofEndCapF3->Fill(tof);
-            if(rollId.station()==4 && rollId.region()==1) fHisttofEndCapF4->Fill(tof);
-            if(rollId.station()==1 && rollId.region()==-1) fHisttofEndCapB1->Fill(tof);
-            if(rollId.station()==2 && rollId.region()==-1) fHisttofEndCapB2->Fill(tof);
-            if(rollId.station()==3 && rollId.region()==-1) fHisttofEndCapB3->Fill(tof);
-            if(rollId.station()==4 && rollId.region()==-1) fHisttofEndCapB4->Fill(tof);
-            
+            //if(rollId.station()==1 && rollId.region()==0 && rollId.layer()==1) fHisttofBarrel1_in->Fill(tof);
+     
             bx = itdigi->getBx();
             station = rollId.station();
             region = rollId.region();
             layer = rollId.layer();
             roll = rollId.roll();
             hscpTree->Fill();
+            cout << "TrackId: " << itdigi->getTrackId() << endl;
             if(rollId.station()==3 && rollId.region()==-1 )
             {
             	for(edm::DetSetVector<RPCDigiSimLink>::const_iterator itlink2 = digislink->begin();itlink2!=digislink->end();itlink2++)
@@ -192,10 +250,18 @@ HSCPDIGIS::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
             		{
             			DetId theDetId2 = itdigi2->getDetUnitId();
             			RPCDetId rollId2(theDetId2);
-            			if(rollId2.station()==4 && rollId2.region()==-1 && rollId2.ring()==rollId.ring() && rollId.sector()==rollId2.sector())
+            			if(rollId2.station()==2 && rollId2.region()==-1 && rollId2.ring()==rollId.ring() && rollId.sector()==rollId2.sector())
             			{            			
-            				fHistDiffTof->Fill(itdigi2->getTimeOfFlight()- itdigi->getTimeOfFlight());
-            			}            		
+            				//fHistDiffTof->Fill(itdigi2->getBx()- itdigi->getBx());
+            				fHistDiff2_3Tof->Fill(itdigi->getTimeOfFlight()- itdigi2->getTimeOfFlight());
+            				fHistDiff2_3Bx->Fill(itdigi->getBx()- itdigi2->getBx());
+            			}  
+            			if(rollId2.station()==4 && rollId2.region()==-1 && rollId2.ring()==rollId.ring() && rollId.sector()==rollId2.sector())
+            			{
+								//fHistDiffTof->Fill(itdigi2->getBx()- itdigi->getBx());
+            				fHistDiff3_4Tof->Fill(itdigi2->getTimeOfFlight()- itdigi->getTimeOfFlight());
+            				fHistDiff3_4Bx->Fill(itdigi2->getBx()- itdigi->getBx());
+            			}          		
             		}
             	}
             }
@@ -210,21 +276,10 @@ void
 HSCPDIGIS::beginJob()
 {
    Service<TFileService> fs;
-   fHisttofBarrel1_in = fs->make<TH1D>("HistotofBarrelStation1_in", "toF Barrel station 1 in (DIGIS)",150,1.,150.);
-   fHisttofBarrel1_out = fs->make<TH1D>("HistotofBarrelStation1_out","tof Barrel Station 1 out (DIGIS)",150,0.,150.);
-   fHisttofBarrel2_in = fs->make<TH1D>("HistotofBarrelStation2_in","tof Barrel Station 2 in (DIGIS)",150,0.,150.);
-   fHisttofBarrel2_out = fs->make<TH1D>("HistotofBarrelStation2_out","tof Barrel Station 2 out (DIGIS)",150,0.,150.);
-   fHisttofBarrel3 = fs->make<TH1D>("HistotofBarrelStation3","tof Barrel Station 3 (DIGIS)",150,0.,150.);
-   fHisttofBarrel4 = fs->make<TH1D>("HistotofBarrelStation4","tof Barrel Station 4 (DIGIS)",150,0.,150.);
-   fHisttofEndCapF1 = fs->make<TH1D>("HistotofEndCapStationF1","tof EndCap Station 1(Forward) (DIGIS)",150,0.,150.);
-   fHisttofEndCapF2 = fs->make<TH1D>("HistotofEndCapStationF2","tof EndCap Station 2(Forward) (DIGIS)",150,0.,150.);
-   fHisttofEndCapF3 = fs->make<TH1D>("HistotofEndCapStationF3","tof EndCap Station 3(Forward) (DIGIS)",150,0.,150.);
-   fHisttofEndCapF4 = fs->make<TH1D>("HistotofEndCapStationF4","tof EndCap Station 4(Forward) (DIGIS)",150,0.,150.);
-   fHisttofEndCapB1 = fs->make<TH1D>("HistotofEndCapStationB1","tof EndCap Station 1(Backward) (DIGIS)",150,0.,150.);
-   fHisttofEndCapB2 = fs->make<TH1D>("HistotofEndCapStationB2","tof EndCap Station 2(Backward) (DIGIS)",150,0.,150.);
-   fHisttofEndCapB3 = fs->make<TH1D>("HistotofEndCapStationB3","tof EndCap Station 3(Backward) (DIGIS)",150,0.,150.);
-   fHisttofEndCapB4 = fs->make<TH1D>("HistotofEndCapStationB4","tof EndCap Station 4(Backward) (DIGIS)",150,0.,150.);
-   fHistDiffTof = fs->make<TH1D>("fHistDiffTof","fHistDiffTof",100,-50.,50.);
+   fHistDiff2_3Tof = fs->make<TH1D>("fHistDiff2_3Tof","fHistDiff2_3Tof",100,-50.,50.);
+   fHistDiff3_4Tof = fs->make<TH1D>("fHistDiff3_4Tof","fHistDiff3_4Tof",100,-50.,50.);
+	fHistDiff2_3Bx = fs->make<TH1D>("fHistDiff2_3Bx","fHistDiff2_3Bx",100,-50.,50.);
+   fHistDiff3_4Bx = fs->make<TH1D>("fHistDiff3_4Bx","fHistDiff3_4Bx",100,-50.,50.);
    hscpTree = fs->make<TTree>("hscpTree","Tree of HSCP particles");
    hscpTree->Branch("bx",			&bx,			"bx/I");
    hscpTree->Branch("tof",			&tof,			"tof/F");
