@@ -83,9 +83,12 @@ class HSCPDIGIS : public edm::EDAnalyzer {
       TH1D* fHistDiff2_3Bx;
       TH1D* fHistDiff3_4Bx;
       TTree* hscpTree;
+      TTree* rechitTree;
       Int_t bx;
+      Int_t bunchX;
       Float_t tof;
       UInt_t station;
+      UInt_t stationhit;
       Int_t region;
       UInt_t layer;
       UInt_t roll;
@@ -150,10 +153,18 @@ HSCPDIGIS::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
    iSetup.get<MuonGeometryRecord>().get(rpcGeo);
    
    vector<vector<TVector3>> aPos; //array of positions.
+   vector<vector<unsigned int>> aStation;
+   vector<vector<int>> aBx;
+   unsigned int sStation;
+   int sBx; 
    for(RPCRecHitCollection::const_iterator rechit_it = rechits->begin(); rechit_it != rechits->end() ; rechit_it++)
    {
    	cout << "Bx (RecHit): " << rechit_it->BunchX() << endl;
+   	sBx = rechit_it->BunchX();
+   	
+   	
    	RPCDetId idRoll(rechit_it->rpcId());
+   	sStation = idRoll.station();
    	//cout << "Global position: " << rechit_it->globalPosition().x() << endl;
    	LocalPoint lPos = rechit_it->localPosition();
    	const RPCRoll* roll = rpcGeo->roll(idRoll);
@@ -171,6 +182,13 @@ HSCPDIGIS::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
    		vector<TVector3> vPos;
    		vPos.push_back(pos);
    		aPos.push_back(vPos);
+   		vector<unsigned int> vStation;
+   		vStation.push_back(sStation);
+   		aStation.push_back(vStation);
+   		
+   		vector<int> vBx;
+   		vBx.push_back(sBx);
+   		aBx.push_back(vBx);
    	}else
    	{
    		int ntks = aPos.size();
@@ -181,7 +199,8 @@ HSCPDIGIS::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
    			double dR= TMath::Sqrt(dTheta*dTheta+dPhi*dPhi);
    			if (dR < dRmax)
    			{
-   				
+   				aStation[i].push_back(sStation);
+   				aBx[i].push_back(sBx);
    				aPos[i].push_back(pos);
    				found= true;
    			}
@@ -190,14 +209,32 @@ HSCPDIGIS::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
    		{
    			vector<TVector3> vPos;
    			vPos.push_back(pos);
-   			aPos.push_back(vPos);   			
+   			aPos.push_back(vPos); 
+   			
+   			vector<unsigned int> vStation;
+   			vStation.push_back(sStation);
+   			aStation.push_back(vStation);
+   		
+   			vector<int> vBx;
+   			vBx.push_back(sBx);
+   			aBx.push_back(vBx);  			
    		}	
    	}
    }
    cout<< "Number of tracks found: " << aPos.size() << endl;
    for(unsigned int j=0; j< aPos.size();j++)
-   {
-   	cout << "Track " << j << " has " <<aPos[j].size() << " hits." << endl;
+   {	
+   	int nhits=aPos[j].size();
+   	cout << "Track " << j << " has " <<nhits << " hits." << endl;
+   	if(nhits > 2 && aBx[j][0]>5)
+   	{
+   		for(int k=0; k<nhits;k++)
+   		{
+   			bunchX= aBx[j][k];
+   			stationhit = aStation[j][k];
+				rechitTree->Fill();
+   		}
+   	}
    	
    }
    
@@ -287,6 +324,11 @@ HSCPDIGIS::beginJob()
    hscpTree->Branch("region",		&region,		"region/I");
    hscpTree->Branch("layer",		&layer,		"layer/i");
    hscpTree->Branch("roll",		&roll,		"roll/i");
+   
+   rechitTree = fs->make<TTree>("rechitTree","Tree of Bx in rechit collection");
+   rechitTree->Branch("bunchX",			&bunchX,			"bunchX/I");
+   rechitTree->Branch("stationhit",	&stationhit,	"stationhit/i");
+   
    
    return;
 }
