@@ -1,0 +1,15 @@
+<use name="FWCore/Framework"/>
+<use name="FWCore/PluginManager"/>
+<use name="FWCore/ParameterSet"/>
+<use name="SimDataFormats/RPCDigiSimLink"/>
+<use name="DataFormats/DetId"/>
+<use name="DataFormats/MuonDetId"/>
+<use name="Geometry/CommonDetUnit"/>
+<use name="RecoMuon/DetLayers"/>
+<use name="rootcore"/>
+<use name="rootgraphics"/>
+<use name="Root"/>
+<use name="CommonTools/UtilAlgos"/>
+<use name="DataFormats/RPCDigi"/>
+<use name="Geometry/RPCGeometry"/>
+<flags EDM_PLUGIN="1"/>

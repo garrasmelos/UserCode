@@ -83,12 +83,9 @@ class HSCPDIGIS : public edm::EDAnalyzer {
       TH1D* fHistDiff2_3Bx;
       TH1D* fHistDiff3_4Bx;
       TTree* hscpTree;
-      TTree* rechitTree;
       Int_t bx;
-      Int_t bunchX;
       Float_t tof;
       UInt_t station;
-      UInt_t stationhit;
       Int_t region;
       UInt_t layer;
       UInt_t roll;
@@ -96,7 +93,6 @@ class HSCPDIGIS : public edm::EDAnalyzer {
       
       edm::EDGetTokenT<edm::DetSetVector<RPCDigiSimLink>> digisToken_;
       edm::EDGetTokenT<RPCDigiCollection> digis2Token_;
-      edm::EDGetTokenT<RPCRecHitCollection> recHitToken_;
 };
 
 //
@@ -114,8 +110,7 @@ using namespace std;
 HSCPDIGIS::HSCPDIGIS(const edm::ParameterSet& iConfig)
 : fHistDiff2_3Tof(0), fHistDiff3_4Tof(0), fHistDiff2_3Bx(0), fHistDiff3_4Bx(0),
    digisToken_(consumes<edm::DetSetVector<RPCDigiSimLink>>(iConfig.getParameter<edm::InputTag>("digisLabel"))),
-   digis2Token_(consumes<RPCDigiCollection>(iConfig.getParameter<edm::InputTag>("digis2Label"))),
-   recHitToken_(consumes<RPCRecHitCollection>(iConfig.getParameter<edm::InputTag>("recHitLabel")))
+   digis2Token_(consumes<RPCDigiCollection>(iConfig.getParameter<edm::InputTag>("digis2Label")))
 {
    //now do what ever initialization is needed
 
@@ -146,97 +141,6 @@ HSCPDIGIS::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
    Handle<RPCDigiCollection> digis;
    iEvent.getByToken(digis2Token_, digis);
    
-   Handle<RPCRecHitCollection> rechits;
-   iEvent.getByToken(recHitToken_,rechits);
-   
-   edm::ESHandle<RPCGeometry> rpcGeo;
-   iSetup.get<MuonGeometryRecord>().get(rpcGeo);
-   
-   vector<vector<TVector3>> aPos; //array of positions.
-   vector<vector<unsigned int>> aStation;
-   vector<vector<int>> aBx;
-   unsigned int sStation;
-   int sBx; 
-   for(RPCRecHitCollection::const_iterator rechit_it = rechits->begin(); rechit_it != rechits->end() ; rechit_it++)
-   {
-   	cout << "Bx (RecHit): " << rechit_it->BunchX() << endl;
-   	sBx = rechit_it->BunchX();
-   	
-   	
-   	RPCDetId idRoll(rechit_it->rpcId());
-   	sStation = idRoll.station();
-   	//cout << "Global position: " << rechit_it->globalPosition().x() << endl;
-   	LocalPoint lPos = rechit_it->localPosition();
-   	const RPCRoll* roll = rpcGeo->roll(idRoll);
-   	const BoundPlane& rollSurface = roll->surface();
-   	GlobalPoint gPos = rollSurface.toGlobal(lPos);
-   	
-   	cout << "Global Point: " << gPos.x() << " " << gPos.y() << " " << gPos.z() << endl;
-   	TVector3 pos(gPos.x(),gPos.x(),gPos.z());
-   	double phi1 = pos.Phi();
-   	double theta1 = pos.Theta();
-   	bool found = false;
-   	double dRmax = 1.;
-   	if(aPos.size()==0)
-   	{
-   		vector<TVector3> vPos;
-   		vPos.push_back(pos);
-   		aPos.push_back(vPos);
-   		vector<unsigned int> vStation;
-   		vStation.push_back(sStation);
-   		aStation.push_back(vStation);
-   		
-   		vector<int> vBx;
-   		vBx.push_back(sBx);
-   		aBx.push_back(vBx);
-   	}else
-   	{
-   		int ntks = aPos.size();
-   		for(int i=0; i < ntks ; i++)
-   		{
-   			double dTheta = theta1 - aPos[i][0].Theta();
-   			double dPhi = phi1 - aPos[i][0].Phi();
-   			double dR= TMath::Sqrt(dTheta*dTheta+dPhi*dPhi);
-   			if (dR < dRmax)
-   			{
-   				aStation[i].push_back(sStation);
-   				aBx[i].push_back(sBx);
-   				aPos[i].push_back(pos);
-   				found= true;
-   			}
-   		}
-   		if(!found)
-   		{
-   			vector<TVector3> vPos;
-   			vPos.push_back(pos);
-   			aPos.push_back(vPos); 
-   			
-   			vector<unsigned int> vStation;
-   			vStation.push_back(sStation);
-   			aStation.push_back(vStation);
-   		
-   			vector<int> vBx;
-   			vBx.push_back(sBx);
-   			aBx.push_back(vBx);  			
-   		}	
-   	}
-   }
-   cout<< "Number of tracks found: " << aPos.size() << endl;
-   for(unsigned int j=0; j< aPos.size();j++)
-   {	
-   	int nhits=aPos[j].size();
-   	cout << "Track " << j << " has " <<nhits << " hits." << endl;
-   	if(nhits > 2 && aBx[j][0]>5)
-   	{
-   		for(int k=0; k<nhits;k++)
-   		{
-   			bunchX= aBx[j][k];
-   			stationhit = aStation[j][k];
-				rechitTree->Fill();
-   		}
-   	}
-   	
-   }
    
    for(RPCDigiCollection::DigiRangeIterator detUnitIt = digis->begin(); detUnitIt != digis->end() ; detUnitIt++)
    {
@@ -257,6 +161,8 @@ HSCPDIGIS::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
    region=0;
    layer=0;
    roll=0;
+   if(digislink->size()>0 && digislink.isValid())
+   {
    for(edm::DetSetVector<RPCDigiSimLink>::const_iterator itlink = digislink->begin();itlink!=digislink->end();itlink++)
    {
       for(edm::DetSet<RPCDigiSimLink>::const_iterator itdigi= itlink->data.begin(); itdigi != itlink->data.end();itdigi++)
@@ -277,6 +183,7 @@ HSCPDIGIS::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
             region = rollId.region();
             layer = rollId.layer();
             roll = rollId.roll();
+            cout << "FILLING TREE" << endl;
             hscpTree->Fill();
             cout << "TrackId: " << itdigi->getTrackId() << endl;
             if(rollId.station()==3 && rollId.region()==-1 )
@@ -305,6 +212,7 @@ HSCPDIGIS::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
          }
       }
    }
+   }
 }
 
 
@@ -324,12 +232,6 @@ HSCPDIGIS::beginJob()
    hscpTree->Branch("region",		&region,		"region/I");
    hscpTree->Branch("layer",		&layer,		"layer/i");
    hscpTree->Branch("roll",		&roll,		"roll/i");
-   
-   rechitTree = fs->make<TTree>("rechitTree","Tree of Bx in rechit collection");
-   rechitTree->Branch("bunchX",			&bunchX,			"bunchX/I");
-   rechitTree->Branch("stationhit",	&stationhit,	"stationhit/i");
-   
-   
    return;
 }
 
