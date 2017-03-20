@@ -34,7 +34,7 @@
 #include "SimDataFormats/Vertex/interface/SimVertexContainer.h"
 #include "SimDataFormats/TrackingHit/interface/PSimHitContainer.h"
 
-#include "FastSimulation/Tracking/test/FastTrackAnalyzer.h"
+//#include "FastSimulation/Tracking/test/FastTrackAnalyzer.h"
 
 //#include "DataFormats/Candidate/interface/Candidate.h"
 //#include "DataFormats/Candidate/interface/CandMatchMap.h"
@@ -261,8 +261,8 @@ HSCPanalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
          if(simdetid.det()==DetId::Muon &&  simdetid.subdetId()== MuonSubdetId::RPC){
             RPCDetId rollId(theDetUnitId);
             RPCGeomServ rpcsrv(rollId);
-            const RPCRoll * rollasociated = rpcGeo->roll(rollId);
-            const BoundPlane & RPCSurface = rollasociated->surface();
+            //const RPCRoll * rollasociated = rpcGeo->roll(rollId);
+            //const BoundPlane & RPCSurface = rollasociated->surface();
             //GlobalPoint SimHitInGlobal = RPCSurface.toGlobal((*iHit).localPosition());
             if(rollId.station()==1 && rollId.region()==1) fHistdtofHits->Fill((*iHit).timeOfFlight());
             if(rollId.station()==1 && rollId.region()==0) fHistdtofBarrel1->Fill((*iHit).timeOfFlight());
