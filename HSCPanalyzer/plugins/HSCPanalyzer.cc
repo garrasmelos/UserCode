@@ -36,12 +36,12 @@
 
 #include "FastSimulation/Tracking/test/FastTrackAnalyzer.h"
 
-#include "DataFormats/Candidate/interface/Candidate.h"
-#include "DataFormats/Candidate/interface/CandMatchMap.h"
-#include "DataFormats/Candidate/interface/CandidateFwd.h"
+//#include "DataFormats/Candidate/interface/Candidate.h"
+//#include "DataFormats/Candidate/interface/CandMatchMap.h"
+//#include "DataFormats/Candidate/interface/CandidateFwd.h"
 #include "DataFormats/Common/interface/Handle.h"
-#include "DataFormats/TrackReco/interface/Track.h"
-#include "DataFormats/TrackReco/interface/TrackFwd.h"
+//#include "DataFormats/TrackReco/interface/Track.h"
+//#include "DataFormats/TrackReco/interface/TrackFwd.h"
 #include <DataFormats/RPCRecHit/interface/RPCRecHit.h>
 #include "DataFormats/RPCRecHit/interface/RPCRecHitCollection.h"
 #include "DataFormats/RPCDigi/interface/RPCDigi.h"
@@ -72,14 +72,14 @@
 
 #include "CommonTools/UtilAlgos/interface/TFileService.h"
 
-#include "TrackingTools/Records/interface/TrackingComponentsRecord.h"
-#include "TrackingTools/GeomPropagators/interface/Propagator.h"
-#include "TrackingTools/GeomPropagators/interface/AnalyticalPropagator.h"
-#include "TrackPropagation/SteppingHelixPropagator/interface/SteppingHelixPropagator.h"
-#include "TrackingTools/TransientTrack/interface/TransientTrack.h"
+//#include "TrackingTools/Records/interface/TrackingComponentsRecord.h"
+//#include "TrackingTools/GeomPropagators/interface/Propagator.h"
+//#include "TrackingTools/GeomPropagators/interface/AnalyticalPropagator.h"
+//#include "TrackPropagation/SteppingHelixPropagator/interface/SteppingHelixPropagator.h"
+//#include "TrackingTools/TransientTrack/interface/TransientTrack.h"
 
-#include "MagneticField/Engine/interface/MagneticField.h"
-#include "MagneticField/Records/interface/IdealMagneticFieldRecord.h"
+//#include "MagneticField/Engine/interface/MagneticField.h"
+//#include "MagneticField/Records/interface/IdealMagneticFieldRecord.h"
 
 #include "RecoMuon/TrackingTools/interface/MuonPatternRecoDumper.h"
 
