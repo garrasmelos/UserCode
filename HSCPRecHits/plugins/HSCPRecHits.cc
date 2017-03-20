@@ -84,8 +84,6 @@ class HSCPRecHits : public edm::EDAnalyzer {
       Int_t bunchX;
       UInt_t stationhit;
       UInt_t layerhit;
-
-      
       edm::EDGetTokenT<RPCRecHitCollection> recHitToken_;
 };
 
@@ -126,7 +124,7 @@ HSCPRecHits::~HSCPRecHits()
 void
 HSCPRecHits::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
 {
-	Handle<RPCRecHitCollection> rechits;
+   Handle<RPCRecHitCollection> rechits;
    iEvent.getByToken(recHitToken_,rechits);
    
    edm::ESHandle<RPCGeometry> rpcGeo;
@@ -150,9 +148,9 @@ HSCPRecHits::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
    	
    	RPCDetId idRoll(rechit_it->rpcId());
    	sStation = idRoll.station();
-      sLayer = idRoll.layer();
+      	sLayer = idRoll.layer();
    	sRegion = idRoll.region();
-      //cout << "Global position: " << rechit_it->globalPosition().x() << endl;
+      	//cout << "Global position: " << rechit_it->globalPosition().x() << endl;
    	LocalPoint lPos = rechit_it->localPosition();
    	const RPCRoll* roll = rpcGeo->roll(idRoll);
    	const BoundPlane& rollSurface = roll->surface();
@@ -178,9 +176,9 @@ HSCPRecHits::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
    		vLayer.push_back(sLayer);
    		aLayer.push_back(vLayer);
 
-         vector<int> vRegion;
-         vRegion.push_back(sRegion);
-         aRegion.push_back(vRegion);
+         	vector<int> vRegion;
+         	vRegion.push_back(sRegion);
+         	aRegion.push_back(vRegion);
    		
    		vector<int> vBx;
    		vBx.push_back(sBx);
@@ -197,11 +195,11 @@ HSCPRecHits::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
    			{
    				aStation[i].push_back(sStation);
    				aLayer[i].push_back(sLayer);
-               aRegion[i].push_back(sRegion);
-               aBx[i].push_back(sBx);
+               			aRegion[i].push_back(sRegion);
+               			aBx[i].push_back(sBx);
    				aPos[i].push_back(pos);
    				
-               found= true;
+               			found= true;
    			}
    		}
    		if(!found)
@@ -218,9 +216,9 @@ HSCPRecHits::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
    			vLayer.push_back(sLayer);
    			aLayer.push_back(vLayer);
 
-            vector<int> vRegion;
-            vRegion.push_back(sRegion);
-            aRegion.push_back(vRegion);
+            		vector<int> vRegion;
+            		vRegion.push_back(sRegion);
+            		aRegion.push_back(vRegion);
    		
    			vector<int> vBx;
    			vBx.push_back(sBx);
@@ -232,7 +230,7 @@ HSCPRecHits::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
    //cout<< "Number of tracks found: " << aPos.size() << endl;
    for(unsigned int j=0; j< aPos.size();j++)
    {	
-      int nhits=aPos[j].size();
+      	int nhits=aPos[j].size();
    	//cout << "Track " << j << " has " <<nhits << " hits." << endl;
    	if(nhits > 2 && aBx[j][0]>0 &&aRegion[j][0] == 0)
    	{
@@ -242,24 +240,24 @@ HSCPRecHits::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
             if(aBx[j][l]<aBx[j][l-1]) timeCorr=false;  
          }
          */
-         if(timeCorr){
-         for(int k=0; k<nhits;k++)
+         	if(timeCorr){
+         	for(int k=0; k<nhits;k++)
    		{
    			bunchX= aBx[j][k];
-            stationhit = aStation[j][k];
+            		stationhit = aStation[j][k];
    			if(aRegion[j][k]==0)
-            {
-               if(aStation[j][k] == 1 && aLayer[j][k]==1 )stationhit = 1;
-               if(aStation[j][k] == 1 && aLayer[j][k]==2 )stationhit = 2;
-               if(aStation[j][k] == 2 && aLayer[j][k]==1 )stationhit = 3;
-               if(aStation[j][k] == 2 && aLayer[j][k]==2 )stationhit = 4;
-               if(aStation[j][k] == 3 && aLayer[j][k]==1 )stationhit = 5;
-               if(aStation[j][k] == 4 && aLayer[j][k]==1 )stationhit = 6;
-            }
+            		{
+               			if(aStation[j][k] == 1 && aLayer[j][k]==1 )stationhit = 1;
+               			if(aStation[j][k] == 1 && aLayer[j][k]==2 )stationhit = 2;
+               			if(aStation[j][k] == 2 && aLayer[j][k]==1 )stationhit = 3;
+               			if(aStation[j][k] == 2 && aLayer[j][k]==2 )stationhit = 4;
+               			if(aStation[j][k] == 3 && aLayer[j][k]==1 )stationhit = 5;
+               			if(aStation[j][k] == 4 && aLayer[j][k]==1 )stationhit = 6;
+           		}
    			layerhit = aLayer[j][k];
-				rechitTree->Fill();
+			rechitTree->Fill();
    		}
-         }
+        	}
    	}
    }
 
@@ -271,11 +269,9 @@ HSCPRecHits::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
 void 
 HSCPRecHits::beginJob()
 {
-	Service<TFileService> fs;
-
-   
+   Service<TFileService> fs;
    rechitTree = fs->make<TTree>("rechitTree","Tree of Bx in rechit collection");
-   rechitTree->Branch("bunchX",			&bunchX,			"bunchX/I");
+   rechitTree->Branch("bunchX",		&bunchX,	"bunchX/I");
    rechitTree->Branch("stationhit",	&stationhit,	"stationhit/i");
    rechitTree->Branch("layerhit",	&layerhit,	"layerhit/i");
    return;
