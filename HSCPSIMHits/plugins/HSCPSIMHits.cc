@@ -226,7 +226,7 @@ HSCPSIMHits::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup){
 	sTauP = sTau_p4.P();
 	sTauMass= sTau_p4.M();   //sTau->generatedMass();
 	sTauBeta= sqrt(sTauP*sTauP/(sTauP*sTauP+sTauMass*sTauMass));
-	tof =(d/c)*(1/sTauBeta-1);
+	tof =(d/c)*(1/sTauBeta); 
 	
 	fHisttof->Fill(tof);
 	fHistSTauMass->Fill(sTauMass);
