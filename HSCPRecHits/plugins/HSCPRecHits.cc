@@ -84,7 +84,9 @@ class HSCPRecHits : public edm::EDAnalyzer {
       Int_t bunchX;
       UInt_t stationhit;
       UInt_t layerhit;
+      edm::EDGetTokenT<edm::DetSetVector<RPCDigiSimLink>> digisToken_;
       edm::EDGetTokenT<RPCRecHitCollection> recHitToken_;
+      
 };
 
 //
@@ -100,7 +102,8 @@ using namespace std;
 // constructors and destructor
 //
 HSCPRecHits::HSCPRecHits(const edm::ParameterSet& iConfig)
-:  recHitToken_(consumes<RPCRecHitCollection>(iConfig.getParameter<edm::InputTag>("recHitLabel")))
+:  digisToken_(consumes<edm::DetSetVector<RPCDigiSimLink>>(iConfig.getParameter<edm::InputTag>("digisLabel"))),
+	recHitToken_(consumes<RPCRecHitCollection>(iConfig.getParameter<edm::InputTag>("recHitLabel")))
 {
    //now do what ever initialization is needed
 
@@ -124,6 +127,9 @@ HSCPRecHits::~HSCPRecHits()
 void
 HSCPRecHits::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
 {
+   Handle<edm::DetSetVector<RPCDigiSimLink>> digislink;
+   iEvent.getByToken(digisToken_, digislink);
+   
    Handle<RPCRecHitCollection> rechits;
    iEvent.getByToken(recHitToken_,rechits);
    
@@ -140,13 +146,46 @@ HSCPRecHits::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
    int sRegion;
    int sBx; 
    
+   vector<RPCDetId> detIds;
+   for(edm::DetSetVector<RPCDigiSimLink>::const_iterator itlink = digislink->begin();itlink!=digislink->end();itlink++)
+   {
+      for(edm::DetSet<RPCDigiSimLink>::const_iterator itdigi= itlink->data.begin(); itdigi != itlink->data.end();itdigi++)
+      {
+         int particleId =itdigi->getParticleType();
+         if(TMath::Abs(particleId) == 1000015 && itdigi->getTrackId()==1)
+         {
+         	DetId theDetId = itdigi->getDetUnitId();
+            RPCDetId rollId(theDetId);
+            detIds.push_back(rollId);
+            cout << rollId << " is a HSCP." << endl;
+            
+         }
+      }
+   }
+   cout << "We have " << detIds.size() << " HSCP digis" << endl;
+   
    for(RPCRecHitCollection::const_iterator rechit_it = rechits->begin(); rechit_it != rechits->end() ; rechit_it++)
    {
    	//cout << "Bx (RecHit): " << rechit_it->BunchX() << endl;
    	sBx = rechit_it->BunchX();
    	
-   	
+   	//cout << "RPCId: " << rechit_it->rpcId() << endl ;
    	RPCDetId idRoll(rechit_it->rpcId());
+   	bool isHSCP= false;
+   	for(unsigned int i=0; i<detIds.size();i++)
+   	{
+   		if(detIds[i]==rechit_it->rpcId()) isHSCP = true;
+   	}
+   	if(isHSCP)
+   	{
+   	 	cout << idRoll << " is a HSCP." << endl;
+   	}else
+   	{
+   	 	cout << idRoll << " is not a HSCP." << endl;
+   	}
+   	
+   	
+   	
    	sStation = idRoll.station();
       	sLayer = idRoll.layer();
    	sRegion = idRoll.region();
