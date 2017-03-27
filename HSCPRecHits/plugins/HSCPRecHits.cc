@@ -81,9 +81,17 @@ class HSCPRecHits : public edm::EDAnalyzer {
       // ----------member data ---------------------------
 
       TTree* rechitTree;
+      TTree* effTree;
+      
       Int_t bunchX;
       UInt_t stationhit;
       UInt_t layerhit;
+      UInt_t isChosen;
+      Float_t beta;
+      Float_t betaSim;
+      Float_t timeOfFlight;
+      
+
       edm::EDGetTokenT<edm::DetSetVector<RPCDigiSimLink>> digisToken_;
       edm::EDGetTokenT<RPCRecHitCollection> recHitToken_;
       
@@ -141,67 +149,83 @@ HSCPRecHits::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
    vector<vector<unsigned int>> aLayer;
    vector<vector<int>> aRegion;
    vector<vector<int>> aBx;
+   vector<vector<double>> aTof;
+   
+   
    unsigned int sStation;
    unsigned int sLayer;
    int sRegion;
    int sBx; 
+   int sTof;
+  
    
+   double c = 29.979;
+	
+	vector<double> tof;
    vector<RPCDetId> detIds;
    for(edm::DetSetVector<RPCDigiSimLink>::const_iterator itlink = digislink->begin();itlink!=digislink->end();itlink++)
    {
       for(edm::DetSet<RPCDigiSimLink>::const_iterator itdigi= itlink->data.begin(); itdigi != itlink->data.end();itdigi++)
       {
          int particleId =itdigi->getParticleType();
-         if(TMath::Abs(particleId) == 1000015 && itdigi->getTrackId()==1)
+         
+         //if(TMath::Abs(particleId) == 1000015 && itdigi->getTrackId()==1)
+         if(particleId == 1000015 )
          {
          	DetId theDetId = itdigi->getDetUnitId();
             RPCDetId rollId(theDetId);
             detIds.push_back(rollId);
-            cout << rollId << " is a HSCP." << endl;
+            tof.push_back(itdigi->getTimeOfFlight());
+            //cout<< "Track ID/particleID :" << itdigi->getTrackId() << "/" << itdigi->getParticleType() <<  endl;
+            //cout << rollId << " is a HSCP." << endl;
             
          }
       }
    }
-   cout << "We have " << detIds.size() << " HSCP digis" << endl;
+   //cout << "We have " << detIds.size() << " HSCP digis" << endl;
    
    for(RPCRecHitCollection::const_iterator rechit_it = rechits->begin(); rechit_it != rechits->end() ; rechit_it++)
    {
    	//cout << "Bx (RecHit): " << rechit_it->BunchX() << endl;
    	sBx = rechit_it->BunchX();
    	
+   	
    	//cout << "RPCId: " << rechit_it->rpcId() << endl ;
    	RPCDetId idRoll(rechit_it->rpcId());
    	bool isHSCP= false;
    	for(unsigned int i=0; i<detIds.size();i++)
    	{
-   		if(detIds[i]==rechit_it->rpcId()) isHSCP = true;
+   		if(detIds[i]==rechit_it->rpcId()) 
+   		{
+   			sTof= tof[i];
+   			isHSCP = true;
+   			break;
+   		}
    	}
-   	if(isHSCP)
+   	if(!isHSCP)
    	{
-   	 	cout << idRoll << " is a HSCP." << endl;
-   	}else
-   	{
-   	 	cout << idRoll << " is not a HSCP." << endl;
+   		continue;
    	}
    	
    	
    	
    	sStation = idRoll.station();
-      	sLayer = idRoll.layer();
+      sLayer = idRoll.layer();
    	sRegion = idRoll.region();
       	//cout << "Global position: " << rechit_it->globalPosition().x() << endl;
    	LocalPoint lPos = rechit_it->localPosition();
    	const RPCRoll* roll = rpcGeo->roll(idRoll);
    	const BoundPlane& rollSurface = roll->surface();
    	GlobalPoint gPos = rollSurface.toGlobal(lPos);
-   	
-   	//cout << "Global Point: " << gPos.x() << " " << gPos.y() << " " << gPos.z() << endl;
    	TVector3 pos(gPos.x(),gPos.x(),gPos.z());
+   	//cout << "Global Point: " << gPos.x() << " " << gPos.y() << " " << gPos.z() << endl;
+   	//cout << "Distance: " << pos.Mag() << endl;
+   	
    	double phi1 = pos.Phi();
    	double theta1 = pos.Theta();
    	bool found = false;
-   	double dRmax = 1.;
-   	if(aPos.size()==0)
+   	double dRmax = 0.2;
+      if(aPos.size()==0)
    	{
    		vector<TVector3> vPos;
    		vPos.push_back(pos);
@@ -215,13 +239,17 @@ HSCPRecHits::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
    		vLayer.push_back(sLayer);
    		aLayer.push_back(vLayer);
 
-         	vector<int> vRegion;
-         	vRegion.push_back(sRegion);
-         	aRegion.push_back(vRegion);
+         vector<int> vRegion;
+         vRegion.push_back(sRegion);
+         aRegion.push_back(vRegion);
    		
    		vector<int> vBx;
    		vBx.push_back(sBx);
    		aBx.push_back(vBx);
+   		
+   		vector<double> vTof;
+   		vTof.push_back(sTof);
+   		aTof.push_back(vTof);
    	}else
    	{
    		int ntks = aPos.size();
@@ -234,11 +262,12 @@ HSCPRecHits::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
    			{
    				aStation[i].push_back(sStation);
    				aLayer[i].push_back(sLayer);
-               			aRegion[i].push_back(sRegion);
-               			aBx[i].push_back(sBx);
+            	aRegion[i].push_back(sRegion);
+            	aBx[i].push_back(sBx);
+            	aTof[i].push_back(sTof);
    				aPos[i].push_back(pos);
    				
-               			found= true;
+            	found= true;
    			}
    		}
    		if(!found)
@@ -255,49 +284,66 @@ HSCPRecHits::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
    			vLayer.push_back(sLayer);
    			aLayer.push_back(vLayer);
 
-            		vector<int> vRegion;
-            		vRegion.push_back(sRegion);
-            		aRegion.push_back(vRegion);
+            vector<int> vRegion;
+            vRegion.push_back(sRegion);
+            aRegion.push_back(vRegion);
    		
    			vector<int> vBx;
    			vBx.push_back(sBx);
-   			aBx.push_back(vBx);  			
+   			aBx.push_back(vBx); 
+   			
+   			vector<double> vTof;
+   			vTof.push_back(sTof);
+   			aTof.push_back(vTof);			
    		}	
    	}
    }
    
-   //cout<< "Number of tracks found: " << aPos.size() << endl;
+   cout<< "Number of tracks found: " << aPos.size() << endl;
    for(unsigned int j=0; j< aPos.size();j++)
    {	
-      	int nhits=aPos[j].size();
-   	//cout << "Track " << j << " has " <<nhits << " hits." << endl;
-   	if(nhits > 2 && aBx[j][0]>0 &&aRegion[j][0] == 0)
+      int nhits=aPos[j].size();
+      cout << "nhits: " << nhits << endl;
+      double betaSum = 0.;
+      double betaSimSum = 0.;
+   	//if(nhits > 2 &&aRegion[j][0] == 0)
+   	if(nhits > 2)
    	{
-   		bool timeCorr= true;
-         /*for(unsigned int l=1 ; l < aBx[j].size();l++)
+   		isChosen=1;
+   		
+         for(unsigned int l=0 ; l < aBx[j].size();l++)
          {
-            if(aBx[j][l]<aBx[j][l-1]) timeCorr=false;  
+            if(aBx[j][l]<6 && aRegion[j][l]!=0)  isChosen=0;
          }
-         */
-         	if(timeCorr){
-         	for(int k=0; k<nhits;k++)
-   		{
-   			bunchX= aBx[j][k];
-            		stationhit = aStation[j][k];
-   			if(aRegion[j][k]==0)
-            		{
-               			if(aStation[j][k] == 1 && aLayer[j][k]==1 )stationhit = 1;
-               			if(aStation[j][k] == 1 && aLayer[j][k]==2 )stationhit = 2;
-               			if(aStation[j][k] == 2 && aLayer[j][k]==1 )stationhit = 3;
-               			if(aStation[j][k] == 2 && aLayer[j][k]==2 )stationhit = 4;
-               			if(aStation[j][k] == 3 && aLayer[j][k]==1 )stationhit = 5;
-               			if(aStation[j][k] == 4 && aLayer[j][k]==1 )stationhit = 6;
-           		}
-   			layerhit = aLayer[j][k];
-			rechitTree->Fill();
-   		}
-        	}
-   	}
+         
+            for(int k=0; k<nhits;k++)
+  		   {
+            bunchX= aBx[j][k];
+            timeOfFlight = aTof[j][k];
+            stationhit = aStation[j][k];
+           	Float_t d = aPos[j][k].Mag();
+           	//cout <<  aPos[j][k].Mag() << endl;
+           	betaSimSum += d/(timeOfFlight*c);
+            betaSum += d/(bunchX*c+d);
+            
+           	if(aRegion[j][k]==0)
+           	{
+              	if(aStation[j][k] == 1 && aLayer[j][k]==1 )stationhit = 1;
+              	if(aStation[j][k] == 1 && aLayer[j][k]==2 )stationhit = 2;
+              	if(aStation[j][k] == 2 && aLayer[j][k]==1 )stationhit = 3;
+              	if(aStation[j][k] == 2 && aLayer[j][k]==2 )stationhit = 4;
+              	if(aStation[j][k] == 3 && aLayer[j][k]==1 )stationhit = 5;
+              	if(aStation[j][k] == 4 && aLayer[j][k]==1 )stationhit = 6;
+        		}
+  				layerhit = aLayer[j][k];
+				rechitTree->Fill();
+  			}
+			//cout << "########################## " << betaSum << "########################" << nhits << endl;
+        	beta = betaSum/nhits;
+        	betaSim = betaSimSum/nhits;
+      	effTree->Fill();
+      }
+       
    }
 
 
@@ -311,8 +357,14 @@ HSCPRecHits::beginJob()
    Service<TFileService> fs;
    rechitTree = fs->make<TTree>("rechitTree","Tree of Bx in rechit collection");
    rechitTree->Branch("bunchX",		&bunchX,	"bunchX/I");
+   rechitTree->Branch("timeOfFlight",		&timeOfFlight,	"timeOfFlight/f");
    rechitTree->Branch("stationhit",	&stationhit,	"stationhit/i");
    rechitTree->Branch("layerhit",	&layerhit,	"layerhit/i");
+
+   effTree = fs->make<TTree>("effTree","effTree");
+   effTree->Branch("isChosen",&isChosen, "isChosen/i");
+   effTree->Branch("beta",&beta,"beta/f");
+   effTree->Branch("betaSim",&betaSim,"betaSim/f");
    return;
 }
 

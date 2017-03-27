@@ -223,6 +223,7 @@ HSCPSIMHits::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup){
       if(sTauBar!=0 && sTau!=0){
 	sTau_p4.SetPxPyPzE(sTau->momentum().px(),sTau->momentum().py(),sTau->momentum().pz(),sTau->momentum().e());
 	//sTau_p3 = HepMC::ThreeVector((sTau->momentum().px()),(sTau->momentum().py()),(sTau->momentum().pz()));
+	cout << "Status/particleID: " << (*pout)->status() <<"/"<< (*pout)->pdg_id() << endl;
 	sTauP = sTau_p4.P();
 	sTauMass= sTau_p4.M();   //sTau->generatedMass();
 	sTauBeta= sqrt(sTauP*sTauP/(sTauP*sTauP+sTauMass*sTauMass));
@@ -263,9 +264,9 @@ HSCPSIMHits::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup){
 	break;
       }
     }
-    if (sTauBar!=0 && sTau!=0){
-      break;
-    }
+    //if (sTauBar!=0 && sTau!=0){
+    //  break;
+    //}
     
   }
 
