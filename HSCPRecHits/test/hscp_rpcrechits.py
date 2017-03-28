@@ -9,7 +9,7 @@ process.load("Geometry.RPCGeometry.rpcGeometry_cfi")
 process.load("Geometry.MuonNumbering.muonNumberingInitialization_cfi")
 
 process.load("RecoLocalMuon.RPCRecHit.rpcRecHits_cfi")
-
+from RecoLocalMuon.RPCRecHit.rpcRecHits_cfi import *
 process.maxEvents = cms.untracked.PSet( input = cms.untracked.int32(-1) )
 
 mylist = FileUtils.loadListFromFile('list.txt')
@@ -23,4 +23,5 @@ process.TFileService = cms.Service("TFileService",
                    	fileName = cms.string("m1599_Gate1_BX_ToF_RecHits.root")
 							)
 
+rpcRecHits.rpcDigiLabel = "simMuonRPCDigis"
 process.p = cms.Path(process.rpcRecHits*process.demo2)
