@@ -36,6 +36,9 @@
 #include "DataFormats/MuonDetId/interface/MuonSubdetId.h"
 
 #include "SimDataFormats/RPCDigiSimLink/interface/RPCDigiSimLink.h"
+#include "SimDataFormats/GeneratorProducts/interface/HepMCProduct.h"
+#include "SimDataFormats/GeneratorProducts/interface/GenEventInfoProduct.h"
+#include "SimDataFormats/GeneratorProducts/interface/GenRunInfoProduct.h"
 #include "DataFormats/Common/interface/DetSetVector.h"
 
 #include "FWCore/ServiceRegistry/interface/Service.h"
@@ -56,6 +59,7 @@
 #include "TTree.h"
 #include <vector>
 #include "TVector3.h"
+#include "TLorentzVector.h"
 //
 // class declaration
 //
@@ -89,9 +93,12 @@ class HSCPRecHits : public edm::EDAnalyzer {
       UInt_t isChosen;
       Float_t beta;
       Float_t betaSim;
+		Float_t betaGen;
+		Float_t etaGen;     
       Float_t timeOfFlight;
       
-
+		edm::EDGetTokenT<GenEventInfoProduct> genEventInfo_;
+		edm::EDGetTokenT<edm::HepMCProduct> hepEventInfo_;
       edm::EDGetTokenT<edm::DetSetVector<RPCDigiSimLink>> digisToken_;
       edm::EDGetTokenT<RPCRecHitCollection> recHitToken_;
       
@@ -110,7 +117,9 @@ using namespace std;
 // constructors and destructor
 //
 HSCPRecHits::HSCPRecHits(const edm::ParameterSet& iConfig)
-:  digisToken_(consumes<edm::DetSetVector<RPCDigiSimLink>>(iConfig.getParameter<edm::InputTag>("digisLabel"))),
+:  genEventInfo_(consumes<GenEventInfoProduct>(iConfig.getParameter<edm::InputTag>("genEventInfo"))),
+	hepEventInfo_(consumes<edm::HepMCProduct>(iConfig.getParameter<edm::InputTag>("hepEventInfo"))),
+	digisToken_(consumes<edm::DetSetVector<RPCDigiSimLink>>(iConfig.getParameter<edm::InputTag>("digisLabel"))),
 	recHitToken_(consumes<RPCRecHitCollection>(iConfig.getParameter<edm::InputTag>("recHitLabel")))
 {
    //now do what ever initialization is needed
@@ -144,6 +153,13 @@ HSCPRecHits::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
    edm::ESHandle<RPCGeometry> rpcGeo;
    iSetup.get<MuonGeometryRecord>().get(rpcGeo);
    
+   Handle<GenEventInfoProduct> GetInfoHandle;
+  	iEvent.getByToken(genEventInfo_, GetInfoHandle); 
+  	
+  	Handle< HepMCProduct > EvtHandle;
+  	iEvent.getByToken(hepEventInfo_, EvtHandle);
+  	const HepMC::GenEvent* Evt = EvtHandle->GetEvent();
+   
    vector<vector<TVector3>> aPos; //array of positions.
    vector<vector<unsigned int>> aStation;
    vector<vector<unsigned int>> aLayer;
@@ -163,6 +179,26 @@ HSCPRecHits::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
 	
 	vector<double> tof;
    vector<RPCDetId> detIds;
+   
+   HepMC::GenParticle* sTau=0;
+   
+   for (HepMC::GenEvent::vertex_const_iterator vit = Evt->vertices_begin(); vit != Evt->vertices_end(); vit++)
+   {
+    	for(HepMC::GenVertex::particles_out_const_iterator pout=(*vit)->particles_out_const_begin(); pout!=(*vit)->particles_out_const_end(); pout++)
+    	{
+      	if( (*pout)->pdg_id() == 1000015 &&(*pout)->status()==1)
+      	{
+      		sTau = (*pout);
+      		TLorentzVector sTau_p4;
+      		sTau_p4.SetPxPyPzE(sTau->momentum().px(),sTau->momentum().py(),sTau->momentum().pz(),sTau->momentum().e());
+      		double sTauP = sTau_p4.P();
+				double sTauMass= sTau_p4.M();
+				betaGen= sqrt(sTauP*sTauP/(sTauP*sTauP+sTauMass*sTauMass));
+				etaGen = sTau_p4.Eta();
+				
+      	}
+      }
+   }
    for(edm::DetSetVector<RPCDigiSimLink>::const_iterator itlink = digislink->begin();itlink!=digislink->end();itlink++)
    {
       for(edm::DetSet<RPCDigiSimLink>::const_iterator itdigi= itlink->data.begin(); itdigi != itlink->data.end();itdigi++)
@@ -206,9 +242,7 @@ HSCPRecHits::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
    	{
    		continue;
    	}
-   	
-   	
-   	
+
    	sStation = idRoll.station();
       sLayer = idRoll.layer();
    	sRegion = idRoll.region();
@@ -307,13 +341,18 @@ HSCPRecHits::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
       double betaSum = 0.;
       double betaSimSum = 0.;
    	//if(nhits > 2 &&aRegion[j][0] == 0)
-   	if(nhits > 2)
+   	int isTrack=1;
+      for(unsigned int m=0 ; m < aBx[j].size();m++)
+      {
+         if(nhits<3 && aRegion[j][m]!=0)  isTrack=0;
+      }
+   	if(isTrack)
    	{
    		isChosen=1;
    		
          for(unsigned int l=0 ; l < aBx[j].size();l++)
          {
-            if(aBx[j][l]<6 && aRegion[j][l]!=0)  isChosen=0;
+            if(aBx[j][l]<6 )  isChosen=0;
          }
          
             for(int k=0; k<nhits;k++)
@@ -365,6 +404,8 @@ HSCPRecHits::beginJob()
    effTree->Branch("isChosen",&isChosen, "isChosen/i");
    effTree->Branch("beta",&beta,"beta/f");
    effTree->Branch("betaSim",&betaSim,"betaSim/f");
+   effTree->Branch("betaGen",&betaGen,"betaGen/f");
+   effTree->Branch("etaGen",&etaGen,"etaGen/f");
    return;
 }
 

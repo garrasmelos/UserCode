@@ -20,7 +20,7 @@ process.source = cms.Source("PoolSource",
 )
 process.load('test.HSCPRecHits.CfiFile_cfi')
 process.TFileService = cms.Service("TFileService",
-                   	fileName = cms.string("m247_Gate1_BX_ToF_RecHits.root")
+                   	fileName = cms.string("m1599_Gate1_BX_ToF_RecHits.root")
 							)
 
 process.p = cms.Path(process.rpcRecHits*process.demo2)
