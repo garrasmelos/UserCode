@@ -19,6 +19,9 @@
 
 // system include files
 
+#define  Nhltpaths 100
+
+
 #include <memory>
 #include <iostream>
 // user include files
@@ -54,6 +57,9 @@
 #include "DataFormats/RPCRecHit/interface/RPCRecHitCollection.h"
 #include "DataFormats/RPCDigi/interface/RPCDigi.h"
 
+#include "DataFormats/Common/interface/TriggerResults.h"
+#include "FWCore/Common/interface/TriggerNames.h"
+
 #include "TMath.h"
 #include "TH1.h"
 #include "TTree.h"
@@ -70,7 +76,8 @@ class HSCPRecHits : public edm::EDAnalyzer {
       ~HSCPRecHits();
 
       static void fillDescriptions(edm::ConfigurationDescriptions& descriptions);
-
+      std::string arrayHLTpathsNames[Nhltpaths];
+      bool filled;
 
    private:
       virtual void beginJob() override;
@@ -154,12 +161,55 @@ HSCPRecHits::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
    iSetup.get<MuonGeometryRecord>().get(rpcGeo);
    
    Handle<GenEventInfoProduct> GetInfoHandle;
-  	iEvent.getByToken(genEventInfo_, GetInfoHandle); 
-  	
-  	Handle< HepMCProduct > EvtHandle;
-  	iEvent.getByToken(hepEventInfo_, EvtHandle);
-  	const HepMC::GenEvent* Evt = EvtHandle->GetEvent();
+   iEvent.getByToken(genEventInfo_, GetInfoHandle); 
    
+   Handle< HepMCProduct > EvtHandle;
+   iEvent.getByToken(hepEventInfo_, EvtHandle);
+   const HepMC::GenEvent* Evt = EvtHandle->GetEvent();
+
+   edm::Handle<edm::TriggerResults> trigResults; //our trigger result object
+   edm::InputTag trigResultsTag("TriggerResults","","DIGI"); //make sure have correct process on MC
+
+   // Access Trigger Results
+   edm::Handle<edm::TriggerResults> hltTriggerResultHandle;
+   iEvent.getByLabel(trigResultsTag,hltTriggerResultHandle);
+
+   cout<<"Number of paths in Trigger:"<<hltTriggerResultHandle->size()<<endl;
+
+   if(filled==false){
+       const edm::TriggerNames & triggerNames = iEvent.triggerNames(*hltTriggerResultHandle);
+       std::cout<<triggerNames.triggerName(1)<<std::endl; 
+       //std::cout<<arrayHLTpathsNames.size()<<std::endl;
+       for(int i=0;i<Nhltpaths;i++){
+	   arrayHLTpathsNames[i]=triggerNames.triggerName(i);
+       }
+       filled=true;
+       //std::cout<<arrayHLTpathsNames.size()<<std::endl;
+   }
+
+   
+
+
+   int hltCount= hltTriggerResultHandle->size();
+   bool allHLTResults[Nhltpaths] = { false };
+   int bin;
+   
+   if(!hltTriggerResultHandle.isValid()) {
+       std::cout << "invalid handle for HLT TriggerResults" << std::endl;
+   }else{
+       for(bin = 0 ; bin < hltCount ; bin++){
+	   allHLTResults[bin] = hltTriggerResultHandle->accept(bin);
+	   //std::cout<<"bit:"<<i<<" "<<allHLTResults[i]<<std::endl;
+       }
+   }
+
+   for(bin = 0 ; bin < hltCount ; bin++){
+       if(allHLTResults[bin]) cout<<"bin:"<<bin<<" arrayHLTpathsNames:"<<arrayHLTpathsNames[bin]<<endl;
+   }
+
+
+
+
    vector<vector<TVector3>> aPos; //array of positions.
    vector<vector<unsigned int>> aStation;
    vector<vector<unsigned int>> aLayer;
