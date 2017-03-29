@@ -19,7 +19,7 @@
 
 // system include files
 
-#define  Nhltpaths 100
+#define  Nhltpaths 3
 
 
 #include <memory>
@@ -168,7 +168,7 @@ HSCPRecHits::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
    const HepMC::GenEvent* Evt = EvtHandle->GetEvent();
 
    edm::Handle<edm::TriggerResults> trigResults; //our trigger result object
-   edm::InputTag trigResultsTag("TriggerResults","","DIGI"); //make sure have correct process on MC
+   edm::InputTag trigResultsTag("TriggerResults","","DIGI2RAW"); //make sure have correct process on MC
 
    // Access Trigger Results
    edm::Handle<edm::TriggerResults> hltTriggerResultHandle;
