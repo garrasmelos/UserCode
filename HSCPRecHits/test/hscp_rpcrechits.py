@@ -1,7 +1,7 @@
 import FWCore.ParameterSet.Config as cms
 import FWCore.Utilities.FileUtils as FileUtils
 
-process = cms.Process("Demo2")
+process = cms.Process("demo2")
 
 process.load("FWCore.MessageService.MessageLogger_cfi")
 process.load("Geometry.MuonCommonData.muonIdealGeometryXML_cfi")
@@ -20,7 +20,7 @@ process.source = cms.Source("PoolSource",
 )
 process.load('test.HSCPRecHits.CfiFile_cfi')
 process.TFileService = cms.Service("TFileService",
-                   	fileName = cms.string("m1599_Gate1_BX_ToF_RecHits.root")
+                   	fileName = cms.string("m1599_Gate1_BX_ToF_RecHits_test.root")
 							)
 
 rpcRecHits.rpcDigiLabel = "simMuonRPCDigis"
