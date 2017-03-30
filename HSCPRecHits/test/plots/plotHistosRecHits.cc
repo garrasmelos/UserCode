@@ -45,8 +45,8 @@ int plotHistosRecHits()
 		double bGen = betaGen;
 		if(b>0 && b <1.)
 		{
-			fHBetaSimRes->Fill((b-bSim)/bSim);
-			fHBetaGenRes->Fill((b-bGen)/bGen);
+			fHBetaSimRes->Fill((bSim-b)/bSim);
+			fHBetaGenRes->Fill((bGen-b)/bGen);
 			cout << bSim << "   " << b << endl;
 			fHBetaTot->Fill(b);
 			if(chosen) fHBetaSel->Fill(b);
@@ -69,7 +69,7 @@ int plotHistosRecHits()
 	fHist2DBx_Station->Draw("colz");
 	c1->SaveAs("images/"+infile+"_BxVsStation.pdf");
 	
-   gPad->SetRightMargin(0.15);
+   
 	c1->cd();
 	fHist2DBetaVsEta->SaveAs("histograms/"+infile+"_BetaVsEta.root");
 	fHist2DBetaVsEta->GetXaxis()->SetTitle("#beta(sTau)");
@@ -92,20 +92,23 @@ int plotHistosRecHits()
 	c1->SaveAs("images/"+infile+"_BetaSel.pdf");
 	
 	c1->cd();
-	//eff->GetYaxis()->SetTitle("Efficiency");
+	gPad->SetRightMargin(0.05);
+	gPad->SetLeftMargin(0.15);
+	
+	eff->SetTitle(";#beta;Efficiency");
 	eff->Draw();
 	eff->SaveAs("histograms/"+infile+"_eff.root");
 	c1->SaveAs("images/"+infile+"_eff.pdf");
 	
 	c1->cd();
 	fHBetaSimRes->SaveAs("histograms/"+infile+"_SimRes.root");
-	fHBetaSimRes->GetXaxis()->SetTitle("#beta resolution (#beta - #beta_{SIM})/#beta_{SIM}");
+	fHBetaSimRes->GetXaxis()->SetTitle("#beta resolution (#beta_{SIM}-#beta_{RPC})/#beta_{SIM}");
 	fHBetaSimRes->Draw();
 	c1->SaveAs("images/"+infile+"_SimRes.pdf");
 	
 	c1->cd();
 	fHBetaGenRes->SaveAs("histograms/"+infile+"_GenRes.root");
-	fHBetaGenRes->GetXaxis()->SetTitle("#beta resolution (#beta - #beta_{GEN})/#beta_{GEN}");
+	fHBetaGenRes->GetXaxis()->SetTitle("#beta resolution (#beta_{GEN}-#beta_{RPC})/#beta_{GEN}");
 	fHBetaGenRes->Draw();
 	c1->SaveAs("images/"+infile+"_GenRes.pdf");
 	
