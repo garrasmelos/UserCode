@@ -98,6 +98,8 @@ class HSCPRecHits : public edm::EDAnalyzer {
       UInt_t stationhit;
       UInt_t layerhit;
       UInt_t isChosen;
+      
+      UInt_t triggL1;
       Float_t beta;
       Float_t betaSim;
 		Float_t betaGen;
@@ -174,11 +176,11 @@ HSCPRecHits::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
    edm::Handle<edm::TriggerResults> hltTriggerResultHandle;
    iEvent.getByLabel(trigResultsTag,hltTriggerResultHandle);
 
-   cout<<"Number of paths in Trigger:"<<hltTriggerResultHandle->size()<<endl;
+   //cout<<"Number of paths in Trigger:"<<hltTriggerResultHandle->size()<<endl;
 
    if(filled==false){
        const edm::TriggerNames & triggerNames = iEvent.triggerNames(*hltTriggerResultHandle);
-       std::cout<<triggerNames.triggerName(1)<<std::endl; 
+       //std::cout<<triggerNames.triggerName(1)<<std::endl; 
        //std::cout<<arrayHLTpathsNames.size()<<std::endl;
        for(int i=0;i<Nhltpaths;i++){
 	   arrayHLTpathsNames[i]=triggerNames.triggerName(i);
@@ -193,20 +195,20 @@ HSCPRecHits::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
    int hltCount= hltTriggerResultHandle->size();
    bool allHLTResults[Nhltpaths] = { false };
    int bin;
-   
+   triggL1 = 0;
    if(!hltTriggerResultHandle.isValid()) {
-       std::cout << "invalid handle for HLT TriggerResults" << std::endl;
+       //std::cout << "invalid handle for HLT TriggerResults" << std::endl;
    }else{
        for(bin = 0 ; bin < hltCount ; bin++){
 	   allHLTResults[bin] = hltTriggerResultHandle->accept(bin);
 	   //std::cout<<"bit:"<<i<<" "<<allHLTResults[i]<<std::endl;
        }
+       triggL1 = hltTriggerResultHandle->accept(1);
    }
 
    for(bin = 0 ; bin < hltCount ; bin++){
        if(allHLTResults[bin]) cout<<"bin:"<<bin<<" arrayHLTpathsNames:"<<arrayHLTpathsNames[bin]<<endl;
    }
-
 
 
 
@@ -254,7 +256,7 @@ HSCPRecHits::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
       for(edm::DetSet<RPCDigiSimLink>::const_iterator itdigi= itlink->data.begin(); itdigi != itlink->data.end();itdigi++)
       {
          int particleId =itdigi->getParticleType();
-         
+         //cout << "Process type: "<< itdigi->getProcessType() << endl;
          //if(TMath::Abs(particleId) == 1000015 && itdigi->getTrackId()==1)
          if(particleId == 1000015 )
          {
@@ -384,47 +386,57 @@ HSCPRecHits::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
    }
    
    cout<< "Number of tracks found: " << aPos.size() << endl;
+   int theTrack=-1;
+   unsigned int theTrackSize=0;
    for(unsigned int j=0; j< aPos.size();j++)
    {	
-      int nhits=aPos[j].size();
+   	if (aPos[j].size() > theTrackSize)
+   	{
+   	 	theTrackSize = aPos[j].size();
+   	 	theTrack = j;
+   	}
+   }
+   if(theTrack!=-1)
+   {	
+      int nhits=aPos[theTrack].size();
       cout << "nhits: " << nhits << endl;
       double betaSum = 0.;
       double betaSimSum = 0.;
-   	//if(nhits > 2 &&aRegion[j][0] == 0)
+   	//if(nhits > 2 &&aRegion[theTrack][0] == 0)
    	int isTrack=1;
-      for(unsigned int m=0 ; m < aBx[j].size();m++)
+      for(unsigned int m=0 ; m < aBx[theTrack].size();m++)
       {
-         if(nhits<3 && aRegion[j][m]!=0)  isTrack=0;
+         if(nhits<3 && aRegion[theTrack][m]!=0)  isTrack=0;
       }
    	if(isTrack)
    	{
    		isChosen=1;
    		
-         for(unsigned int l=0 ; l < aBx[j].size();l++)
+         for(unsigned int l=0 ; l < aBx[theTrack].size();l++)
          {
-            if(aBx[j][l]<6 )  isChosen=0;
+            if(aBx[theTrack][l]<6 )  isChosen=0;
          }
          
-            for(int k=0; k<nhits;k++)
+            for(int ihit=0; ihit<nhits;ihit++)
   		   {
-            bunchX= aBx[j][k];
-            timeOfFlight = aTof[j][k];
-            stationhit = aStation[j][k];
-           	Float_t d = aPos[j][k].Mag();
-           	//cout <<  aPos[j][k].Mag() << endl;
+            bunchX= aBx[theTrack][ihit];
+            timeOfFlight = aTof[theTrack][ihit];
+            stationhit = aStation[theTrack][ihit];
+           	Float_t d = aPos[theTrack][ihit].Mag();
+           	//cout <<  aPos[theTrack][ihit].Mag() << endl;
            	betaSimSum += d/(timeOfFlight*c);
             betaSum += d/(bunchX*c+d);
             
-           	if(aRegion[j][k]==0)
+           	if(aRegion[theTrack][ihit]==0)
            	{
-              	if(aStation[j][k] == 1 && aLayer[j][k]==1 )stationhit = 1;
-              	if(aStation[j][k] == 1 && aLayer[j][k]==2 )stationhit = 2;
-              	if(aStation[j][k] == 2 && aLayer[j][k]==1 )stationhit = 3;
-              	if(aStation[j][k] == 2 && aLayer[j][k]==2 )stationhit = 4;
-              	if(aStation[j][k] == 3 && aLayer[j][k]==1 )stationhit = 5;
-              	if(aStation[j][k] == 4 && aLayer[j][k]==1 )stationhit = 6;
+              	if(aStation[theTrack][ihit] == 1 && aLayer[theTrack][ihit]==1 )stationhit = 1;
+              	if(aStation[theTrack][ihit] == 1 && aLayer[theTrack][ihit]==2 )stationhit = 2;
+              	if(aStation[theTrack][ihit] == 2 && aLayer[theTrack][ihit]==1 )stationhit = 3;
+              	if(aStation[theTrack][ihit] == 2 && aLayer[theTrack][ihit]==2 )stationhit = 4;
+              	if(aStation[theTrack][ihit] == 3 && aLayer[theTrack][ihit]==1 )stationhit = 5;
+              	if(aStation[theTrack][ihit] == 4 && aLayer[theTrack][ihit]==1 )stationhit = 6;
         		}
-  				layerhit = aLayer[j][k];
+  				layerhit = aLayer[theTrack][ihit];
 				rechitTree->Fill();
   			}
 			//cout << "########################## " << betaSum << "########################" << nhits << endl;
@@ -456,6 +468,7 @@ HSCPRecHits::beginJob()
    effTree->Branch("betaSim",&betaSim,"betaSim/f");
    effTree->Branch("betaGen",&betaGen,"betaGen/f");
    effTree->Branch("etaGen",&etaGen,"etaGen/f");
+   effTree->Branch("triggL1", &triggL1, "triggL1/i");
    return;
 }
 
