@@ -9,83 +9,39 @@ int plotHistosRecHits()
   	lumi_13TeV = "2.7 fb^{-1}";
   	lumi_8TeV  = "19.1 fb^{-1}"; // default is "19.7 fb^{-1}"
   	lumi_7TeV  = "4.9 fb^{-1}";  // default is "5.1 fb^{-1}"
+  	lumi_13TeV_MC = "MC Pythia6 - #tilde{#tau} of GMSB model" ;
   	
   	int iPeriod = 100;    // 1=7TeV, 2=8TeV, 3=7+8TeV, 4=13TeV, 7=7+8+13TeV 
-  	int iPos    = 33;
-  	
-  	TString canvName = "c1";
-  	TCanvas* c1 = CreateCanvas(canvName);
-	
-	TFile* fin = new TFile("rootfiles/"+infile+".root");
-
-	TTree* treeRecHit = (TTree*)fin->Get(intreeRecHit);	
-	treeRecHit->SetBranchAddress("bunchX",			&bunchX);
-	treeRecHit->SetBranchAddress("stationhit",	&stationhit);
-
-	Int_t nRecHits = treeRecHit->GetEntries();
-	for(Int_t j = 0; j < nRecHits; j++)
-	{
-		treeRecHit->GetEntry(j);
-		fHist2DBx_Station->Fill(stationhit,bunchX);
-	}
-	
-	TTree* treeEff = (TTree*)fin->Get(intreeEff);
-	treeEff->SetBranchAddress("isChosen", &isChosen);
-	treeEff->SetBranchAddress("beta", &beta);
-	treeEff->SetBranchAddress("betaSim", &betaSim);
-	treeEff->SetBranchAddress("betaGen", &betaGen);
-	treeEff->SetBranchAddress("etaGen", &etaGen);
-	Int_t ntks = treeEff->GetEntries();
-	for(Int_t k=0; k < ntks ; k++)
-	{
-		treeEff->GetEntry(k);
-		int chosen= isChosen;
-		double b = beta;
-		double bSim = betaSim;
-		double bGen = betaGen;
-		if(b>0 && b <1.)
-		{
-			fHBetaSimRes->Fill((bSim-b)/bSim);
-			fHBetaGenRes->Fill((bGen-b)/bGen);
-			cout << bSim << "   " << b << endl;
-			fHBetaTot->Fill(b);
-			if(chosen) fHBetaSel->Fill(b);
-			fHist2DBetaVsEta->Fill(betaGen,etaGen);
-		}
-		
-	}
-	
-	TEfficiency* eff = 0;
-	if(TEfficiency::CheckConsistency(*fHBetaSel,*fHBetaTot))
-	{
-  		eff = new TEfficiency(*fHBetaSel,*fHBetaTot);
- 	}
-	
+  	int iPos    = 11;
+	TString infile = "m1599_Gate1_BX_ToF_RecHits_test.root";
+   TFile* fin = new TFile(infile);
+   TCanvas * c1 = new TCanvas("c1", "c1", 1000, 1000);
+   TH1D *fHBeta_pas = (TH1D*)fin->Get("demo2/fHbeta_pas");
+   TH1D *fHBeta_tot = (TH1D*)fin->Get("demo2/fHbeta_tot");
+   TH1D *fHBeta_resolution = (TH1D*)fin->Get("demo2/fHres");
+   TEfficiency* trigEff = new TEfficiency(*fHBeta_pas,*fHBeta_tot);
+   trigEff->SetTitle(";#beta_{GEN};Efficiency");
+   trigEff->SetMarkerColor(kRed+2);
+   trigEff->SetLineColor(kRed+2);
+   trigEff->SetName("trigEff");
+   trigEff->Draw();
+   TLegend *legend = new TLegend(0.2,0.75,0.45,0.82);
+   legend->AddEntry(trigEff,"HSCP trigger","lep");
+   legend->SetTextSize(0.025);
+   //legend->SetTextColor();
+   legend->SetLineColor(1);
+   legend->SetBorderSize(0);
+   legend->Draw();
+   CMS_lumi( c1, iPeriod, iPos );
+   c1->SaveAs("trigEff-HSCPtrigger.pdf");
    
-	c1 = CreateCanvas(canvName);
-	gStyle->SetOptStat(0);
-   gPad->SetRightMargin(0.15);
    c1->cd();
-	fHist2DBx_Station->Draw("colz");
-	c1->SaveAs("images/"+infile+"_BxVsStation.pdf");
-	
-   
-	c1->cd();
-	fHist2DBetaVsEta->SaveAs("histograms/"+infile+"_BetaVsEta.root");
-	fHist2DBetaVsEta->GetXaxis()->SetTitle("#beta(sTau)");
-	fHist2DBetaVsEta->GetYaxis()->SetTitle("#eta(sTau)");
-	fHist2DBetaVsEta->Draw("colz");
-	c1->SaveAs("images/"+infile+"_BetaVsEta.pdf");
-	
-	
-	gStyle->SetOptStat(1);
-	c1->cd();
-	fHBetaTot->Draw();
-	fHBetaTot->SaveAs("histograms/"+infile+"_BetaTot.root");
-	fHBetaTot->GetXaxis()->SetTitle("#beta(sTau)");
-	c1->SaveAs("images/"+infile+"_BetaTot.pdf");
-	
-	c1->cd();
+	fHBeta_resolution->SaveAs("beta_GenRes.root");
+	fHBeta_resolution->GetXaxis()->SetTitle("#beta resolution (#beta_{GEN}-#beta_{RPC})/#beta_{GEN}");
+	fHBeta_resolution->Draw();
+	CMS_lumi( c1, iPeriod, iPos );
+	c1->SaveAs("beta_GenRes.pdf");
+/*
 	fHBetaSel->Draw();
 	fHBetaSel->SaveAs("histograms/"+infile+"_BetaSel.root");
 	fHBetaSel->GetXaxis()->SetTitle("#beta(sTau)");
@@ -100,18 +56,9 @@ int plotHistosRecHits()
 	eff->SaveAs("histograms/"+infile+"_eff.root");
 	c1->SaveAs("images/"+infile+"_eff.pdf");
 	
-	c1->cd();
-	fHBetaSimRes->SaveAs("histograms/"+infile+"_SimRes.root");
-	fHBetaSimRes->GetXaxis()->SetTitle("#beta resolution (#beta_{SIM}-#beta_{RPC})/#beta_{SIM}");
-	fHBetaSimRes->Draw();
-	c1->SaveAs("images/"+infile+"_SimRes.pdf");
-	
-	c1->cd();
-	fHBetaGenRes->SaveAs("histograms/"+infile+"_GenRes.root");
-	fHBetaGenRes->GetXaxis()->SetTitle("#beta resolution (#beta_{GEN}-#beta_{RPC})/#beta_{GEN}");
-	fHBetaGenRes->Draw();
-	c1->SaveAs("images/"+infile+"_GenRes.pdf");
 	
 	
+	
+*/	
 	return 0;
 }

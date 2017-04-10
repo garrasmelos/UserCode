@@ -74,10 +74,10 @@ CMS_lumi( TPad* pad, int iPeriod, int iPosX )
     }
    else if ( iPeriod==100 )
     {
-      //lumiText += lumi_13TeV;
+      lumiText += lumi_13TeV_MC;
       //lumiText += " #surd s = 13 TeV";
       //lumiText += " (#sqrt{s} = 13 TeV)";
-     lumiText += "HSCP Time of flight from RPC Digis";
+     lumiText += " (13 TeV)";
     }
    
   cout << lumiText << endl;

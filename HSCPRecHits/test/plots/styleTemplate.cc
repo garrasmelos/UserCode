@@ -73,7 +73,7 @@ void setStyleTemplate() {
 
 // For the statistics box:
   styleTemplate->SetOptFile(0);
-  styleTemplate->SetOptStat("nemr"); // To display Entries, Mean, RMS, Underflow and OverFlow styleTemplate->SetOptStat("nemruo");
+  styleTemplate->SetOptStat(0); // To display Entries, Mean, RMS, Underflow and OverFlow styleTemplate->SetOptStat("nemruo");
   styleTemplate->SetStatColor(kWhite);
   styleTemplate->SetStatFont(42);
   styleTemplate->SetStatFontSize(0.025);
@@ -89,8 +89,8 @@ void setStyleTemplate() {
 // Margins:
   styleTemplate->SetPadTopMargin(0.05);
   styleTemplate->SetPadBottomMargin(0.13);
-  styleTemplate->SetPadLeftMargin(0.16);
-  styleTemplate->SetPadRightMargin(0.02);
+  styleTemplate->SetPadLeftMargin(0.13);
+  styleTemplate->SetPadRightMargin(0.05);
 
 // For the Global title:
 
@@ -114,8 +114,10 @@ void setStyleTemplate() {
   styleTemplate->SetTitleSize(0.06, "XYZ");
   // styleTemplate->SetTitleXSize(Float_t size = 0.02); // Another way to set the size?
   // styleTemplate->SetTitleYSize(Float_t size = 0.02);
-  styleTemplate->SetTitleXOffset(0.9);
+  styleTemplate->SetTitleXOffset(1.0);
   styleTemplate->SetTitleYOffset(1.25);
+  styleTemplate->SetTitleXSize(0.04);
+  styleTemplate->SetTitleYSize(0.04);
   // styleTemplate->SetTitleOffset(1.1, "Y"); // Another way to set the Offset
 
 // For the axis labels:
@@ -123,10 +125,10 @@ void setStyleTemplate() {
   styleTemplate->SetLabelColor(1, "XYZ");
   styleTemplate->SetLabelFont(42, "XYZ");
   styleTemplate->SetLabelOffset(0.007, "XYZ");
-  styleTemplate->SetLabelSize(0.05, "XYZ");
+  styleTemplate->SetLabelSize(0.04, "XYZ");
 
 // For the axis:
-
+  TGaxis::SetMaxDigits(3);
   styleTemplate->SetAxisColor(1, "XYZ");
   styleTemplate->SetStripDecimals(kTRUE);
   styleTemplate->SetTickLength(0.03, "XYZ");
@@ -155,16 +157,8 @@ void setStyleTemplate() {
 
   styleTemplate->SetHatchesLineWidth(5);
   styleTemplate->SetHatchesSpacing(0.05);
-  const Int_t NRGBs = 5;
-  const Int_t NCont = 255;
 
-  Double_t stops[NRGBs] = { 0.00, 0.34, 0.61, 0.84, 1.00 };
-  Double_t red[NRGBs]   = { 0.00, 0.00, 0.87, 1.00, 0.51 };
-  Double_t green[NRGBs] = { 0.00, 0.81, 1.00, 0.20, 0.00 };
-  Double_t blue[NRGBs]  = { 0.51, 1.00, 0.12, 0.00, 0.00 };
-  TColor::CreateGradientColorTable(NRGBs, stops, red, green, blue, NCont);
-  styleTemplate->SetNumberContours(NCont);
-
+  
   styleTemplate->cd();
 
 }
