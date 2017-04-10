@@ -92,7 +92,8 @@ class HSCPRecHits : public edm::EDAnalyzer {
 		TH1D* fHnHits;
 		TH1D* fHt0;
 		TH1D* fHbeta;
-		TH1D* fHbetaGen;
+		TH1D* fHbeta_pas;
+		TH1D* fHbeta_tot;
 		TH1D* fHres;
       
 		edm::EDGetTokenT<std::vector<reco::GenParticle>> genParToken_;
@@ -113,7 +114,7 @@ using namespace std;
 // constructors and destructor
 //
 HSCPRecHits::HSCPRecHits(const edm::ParameterSet& iConfig)
-:  fHnHits(0), fHt0(0), fHbeta(0), fHbetaGen(0), fHres(0),
+:  fHnHits(0), fHt0(0), fHbeta(0), fHbeta_pas(0), fHbeta_tot(0), fHres(0),
 	genParToken_(consumes<std::vector<reco::GenParticle>>(iConfig.getParameter<edm::InputTag>("genParticlesLabel"))),
 	recHitToken_(consumes<RPCRecHitCollection>(iConfig.getParameter<edm::InputTag>("recHitLabel")))
 {
@@ -163,7 +164,7 @@ HSCPRecHits::doFit(std::vector<TVector3> POS,std::vector<int> BX)
 	a=(sy*sxx-sx*sxy)/(n*n*varx);
 	b=(n*sxy-sx*sy)/(n*n*varx);
 	s = TMath::Sqrt((syy-sy*sy/n-b*sxy+b*sx*sy/n)/(n-2));
-	cout << "HSCPRecHits::doFit::s= "<< s << endl;
+	//cout << "HSCPRecHits::doFit::s= "<< s << endl;
 	
 	aStdErr = TMath::Sqrt((1/n)+(sx*sx/(n*n*n*varx)));
 	bStdErr = s/TMath::Sqrt(n*varx);
@@ -201,7 +202,6 @@ HSCPRecHits::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
    
 	if(genParHandle.isValid())
 	{
-		cout << "here" << endl;
 		for (auto& pout : *genParHandle)
 		{	
       	if( pout.pdgId() == 1000015 && pout.status()==1)
@@ -210,7 +210,8 @@ HSCPRecHits::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
 				double sTauMass= pout.p4().M();
 				double energy = pout.p4().E();
 				betaGen= sqrt(sTauP*sTauP/(sTauP*sTauP+sTauMass*sTauMass));
-				cout << "betaGen: " << betaGen << "\t" << sTauP/energy << endl;
+				//cout << "betaGen: " << betaGen << "\t" << sTauP/energy << endl;
+				
 				//etaGen = pout.p4().Eta();
 				hscpDir.SetXYZ(pout.p4().Px(),pout.p4().Py(),pout.p4().Pz());				
       	}
@@ -237,13 +238,13 @@ HSCPRecHits::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
 		hscpDir.Phi() < 0 ? p1= pi + hscpDir.Phi() : p1 = hscpDir.Phi();
 		pos.Phi() < 0 ? p2= pi + pos.Phi() : p2 = pos.Phi();
 		
-		cout << t1 << " " << t2 << endl;
-		cout << p1 << " " << p2 << endl;
+		//cout << t1 << " " << t2 << endl;
+		//cout << p1 << " " << p2 << endl;
 		
    	double dTheta = t1 - t2;
    	double dPhi = p1 - p2;
    	double dr= TMath::Sqrt(dTheta*dTheta+dPhi*dPhi);
-   	cout << "dR= " << dr<< endl;
+   	//cout << "dR= " << dr<< endl;
    	if(dr < 0.05)
 		{
 			vPos.push_back(pos);
@@ -251,16 +252,17 @@ HSCPRecHits::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
 		}
    }
    
-   cout<< "Number of rechits found " << vPos.size() << endl;
+   //cout<< "Number of rechits found " << vPos.size() << endl;
 	vector<double> params;
+	if (vPos.size() >= 1 ) fHbeta_tot->Fill(betaGen);
    if (vPos.size() > 2)	
    {
    	params = doFit(vPos,vBx);
-   	cout << "Fit parameters: " << params[0] << " " << params[1] << " " << params[2] << " " << params[3] << endl;
+   	//cout << "Fit parameters: " << params[0] << " " << params[1] << " " << params[2] << " " << params[3] << endl;
    	fHt0->Fill(params[0]);
    	double betaRPC = 1/((params[2]*c)+1);
    	fHbeta->Fill(betaRPC);
-   	fHbetaGen->Fill(betaGen);
+   	fHbeta_pas->Fill(betaGen);
    	fHres->Fill((betaGen-betaRPC)/betaGen);
    }
    
@@ -278,8 +280,9 @@ HSCPRecHits::beginJob()
 	fHnHits = fs->make<TH1D>("fHnHits", "n hits in sTau direction", 20, 0., 20. );
 	fHt0 = fs->make<TH1D>("fHt0","initial time",100,-25.,25.);
 	fHbeta = fs->make<TH1D>("fHbeta","beta",50,0.,1.);
-	fHbetaGen = fs->make<TH1D>("fHbetaGen","beta generated",50,0.,1.);
-	fHres = fs->make<TH1D>("fHres","Beta resolution",30,-3.,3.);
+	fHbeta_pas = fs->make<TH1D>("fHbeta_pas","beta generated pas",50,0.,1.);
+	fHbeta_tot = fs->make<TH1D>("fHbeta_tot","beta generated tot",50,0.,1.);
+	fHres = fs->make<TH1D>("fHres","Beta resolution",60,-3.,3.);
    return;
 }
 
