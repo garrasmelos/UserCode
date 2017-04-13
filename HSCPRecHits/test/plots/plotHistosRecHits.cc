@@ -25,7 +25,7 @@ int plotHistosRecHits()
    trigEff->SetLineColor(kRed+2);
    trigEff->SetName("trigEff");
    trigEff->Draw();
-   TLegend *legend = new TLegend(0.2,0.75,0.45,0.82);
+   TLegend *legend = new TLegend(0.4,0.25,0.65,0.32);
    legend->AddEntry(trigEff,"HSCP trigger","lep");
    legend->SetTextSize(0.025);
    //legend->SetTextColor();
@@ -38,7 +38,13 @@ int plotHistosRecHits()
    c1->cd();
 	fHBeta_resolution->SaveAs("beta_GenRes.root");
 	fHBeta_resolution->GetXaxis()->SetTitle("#beta resolution (#beta_{GEN}-#beta_{RPC})/#beta_{GEN}");
+	fHBeta_resolution->SetLineColor(kGreen+2);
+	fHBeta_resolution->SetFillStyle(3444);
+	fHBeta_resolution->SetFillColor(kGreen+2);
+	
+	
 	fHBeta_resolution->Draw();
+	
 	CMS_lumi( c1, iPeriod, iPos );
 	c1->SaveAs("beta_GenRes.pdf");
 /*
