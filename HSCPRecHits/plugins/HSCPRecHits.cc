@@ -152,7 +152,6 @@ HSCPRecHits::doFit(std::vector<TVector3> POS,std::vector<int> BX)
 	double ssxy = 0;
 	double ssxx = 0;
 	double ssyy = 0;
-	//double varx = 0;
 	double a=0;
 	double aStdErr=0;
 	double b=0;
@@ -171,17 +170,6 @@ HSCPRecHits::doFit(std::vector<TVector3> POS,std::vector<int> BX)
 	ssxy = sxy-sx*sy/n;
 	ssxx = sxx-sx*sx/n;
 	ssyy = syy-sy*sy/n;
-	
-	/*
-	varx = (1/n)*(sxx-sx*sx/n);
-	a=(sy*sxx-sx*sxy)/(n*n*varx);
-	b=(n*sxy-sx*sy)/(n*n*varx);
-	s = TMath::Sqrt((syy-sy*sy/n-b*sxy+b*sx*sy/n)/(n-2));
-	//cout << "HSCPRecHits::doFit::s= "<< s << endl;
-	
-	aStdErr = TMath::Sqrt((1/n)+(sx*sx/(n*n*n*varx)));
-	bStdErr = s/TMath::Sqrt(n*varx);
-	*/
 	b = ssxy/ssxx;
 	a = (1/n)*(sy-b*sx);
 	s = TMath::Sqrt((ssyy - b*ssxy)/(n-2));
@@ -214,9 +202,7 @@ HSCPRecHits::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
 	vector<int> vBx;
 
    const double c = 29.979;
-   const double pi = 3.1415926535;
 	double betaGen=0;
-	//double etaGen=0;
    TVector3 hscpDir;
    
 	if(genParHandle.isValid())
@@ -227,11 +213,7 @@ HSCPRecHits::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
       	{
       		double sTauP = pout.p4().P();
 				double sTauMass= pout.p4().M();
-				double energy = pout.p4().E();
 				betaGen= sqrt(sTauP*sTauP/(sTauP*sTauP+sTauMass*sTauMass));
-				//cout << "betaGen: " << betaGen << "\t" << sTauP/energy << endl;
-				
-				//etaGen = pout.p4().Eta();
 				hscpDir.SetXYZ(pout.p4().Px(),pout.p4().Py(),pout.p4().Pz());				
       	}
       }
@@ -248,48 +230,28 @@ HSCPRecHits::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
    	const BoundPlane& rollSurface = roll->surface();
    	GlobalPoint gPos = rollSurface.toGlobal(lPos);
    	TVector3 pos(gPos.x(),gPos.y(),gPos.z());
-		
-		
-		
-		double t1,t2,p1,p2;
-		hscpDir.Theta() < 0 ? t1= 2*pi + hscpDir.Theta() : t1 = hscpDir.Theta();
-		pos.Theta() < 0 ? t2= 2*pi + pos.Theta() : t2 = pos.Theta();
-		hscpDir.Phi() < 0 ? p1= 2*pi + hscpDir.Phi() : p1 = hscpDir.Phi();
-		pos.Phi() < 0 ? p2= 2*pi + pos.Phi() : p2 = pos.Phi();
-		
-		//cout << t1 << " " << t2 << endl;
-		//cout << p1 << " " << p2 << endl;
-		
-   	double dTheta = t1 - t2;
-   	double dPhi = p1 - p2;
-   	//double dr= TMath::Sqrt(dTheta*dTheta+dPhi*dPhi);
-   	double dr = hscpDir.DeltaR(pos);
-   	fHdR->Fill(dr);
-   	//cout << "dR: " << dr << "\t" << hscpDir.DeltaR(pos) << endl;
    	
-   	//cout << "dR= " << dr<< endl;
-   	if(dr < 0.2)
+      double dr = hscpDir.DeltaR(pos);
+   	fHdR->Fill(dr);
+   	
+      if(dr < 0.15)
 		{
 			vPos.push_back(pos);
 			vBx.push_back(bx);
 		}
    }
    
-   //cout<< "Number of rechits found " << vPos.size() << endl;
 	vector<double> params;
 	if (vPos.size() == 0) 
 	{
-
-		if(betaGen < 0.2) fHeta0->Fill(hscpDir.Eta());
+		if(betaGen < 0.15) fHeta0->Fill(hscpDir.Eta());
 		fHbeta0->Fill(betaGen);
 
 	}
-	
 	if (vPos.size() >= 1 ) 
 	{
 		fHbeta_tot->Fill(betaGen);
 		fHeta_tot->Fill(hscpDir.Eta());
-		
 	}
    if (vPos.size() > 2)	
    {
@@ -297,7 +259,7 @@ HSCPRecHits::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
    	cout << "Fit parameters: " << params[0] << " " << params[1] << " " << params[2] << " " << params[3] << endl;
    	fHt0->Fill(params[0]);
    	double betaRPC = 1/((params[2]*c)+1);
-   	if (params[3]/params[2] < 0.3 && params[2]>0)
+   	if (params[3]/params[2] < 0.3 && params[2]>0 ) //
    	{
    		fHbeta->Fill(betaRPC);
    		double res = (betaGen-betaRPC)/betaGen;
@@ -305,7 +267,6 @@ HSCPRecHits::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
    		fHbeta_pas->Fill(betaGen);
    	}
    }
-   
    
    fHnHits->Fill(vPos.size());
 
