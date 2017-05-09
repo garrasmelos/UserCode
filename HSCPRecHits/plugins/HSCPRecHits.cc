@@ -165,7 +165,6 @@ HSCPRecHits::doFit(std::vector<TVector3> POS,std::vector<int> BX)
     sxy+= POS[i].Mag()*BX[i];
     sxx+= POS[i].Mag()*POS[i].Mag();
     syy+= BX[i]*BX[i];
-    
   }
   ssxy = sxy-sx*sy/n;
   ssxx = sxx-sx*sx/n;
@@ -235,7 +234,7 @@ HSCPRecHits::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
     {
       vPos.push_back(pos);
       vBx.push_back(bx);
-      }
+    }
   }
   vector<double> params;
   if (vPos.size() == 0) 
@@ -281,7 +280,7 @@ HSCPRecHits::beginJob()
   fHbeta_tot = fs->make<TH1D>("fHbeta_tot","beta generated tot",50,0.,1.);
   fHres = fs->make<TH1D>("fHres","Beta resolution",60,-3.,3.);
   fHdR = fs->make<TH1D>("fHdR","fHdR",50,0.,5.);
-   return;
+  return;
 }
 
 // ------------ method called once each job just after ending the event loop  ------------
