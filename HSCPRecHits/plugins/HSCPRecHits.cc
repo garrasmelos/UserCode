@@ -189,72 +189,68 @@ void
 HSCPRecHits::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
 {
    
-   Handle<RPCRecHitCollection> rechits;
-   iEvent.getByToken(recHitToken_,rechits);
+  Handle<RPCRecHitCollection> rechits;
+  iEvent.getByToken(recHitToken_,rechits);
+  
+  edm::ESHandle<RPCGeometry> rpcGeo;
+  iSetup.get<MuonGeometryRecord>().get(rpcGeo);
    
-   edm::ESHandle<RPCGeometry> rpcGeo;
-   iSetup.get<MuonGeometryRecord>().get(rpcGeo);
-   
-   edm::Handle<vector<reco::GenParticle>> genParHandle;
+  edm::Handle<vector<reco::GenParticle>> genParHandle;
 	iEvent.getByToken(genParToken_,genParHandle);
 
-   vector<TVector3> vPos; //array of positions.
+  vector<TVector3> vPos; //array of positions.
 	vector<int> vBx;
-
-   const double c = 29.979;
+  
+  const double c = 29.979;
 	double betaGen=0;
-   TVector3 hscpDir;
+  TVector3 hscpDir;
    
 	if(genParHandle.isValid())
-	{
+  {
 		for (auto& pout : *genParHandle)
 		{	
-      	if( pout.pdgId() == 1000015 && pout.status()==1)
-      	{
-      		double sTauP = pout.p4().P();
-				double sTauMass= pout.p4().M();
-				betaGen= sqrt(sTauP*sTauP/(sTauP*sTauP+sTauMass*sTauMass));
-				hscpDir.SetXYZ(pout.p4().Px(),pout.p4().Py(),pout.p4().Pz());				
-      	}
+      if( pout.pdgId() == 1000015 && pout.status()==1)
+      {
+        double sTauP = pout.p4().P();
+        double sTauMass= pout.p4().M();
+        betaGen= sqrt(sTauP*sTauP/(sTauP*sTauP+sTauMass*sTauMass));
+        hscpDir.SetXYZ(pout.p4().Px(),pout.p4().Py(),pout.p4().Pz());				
       }
-   }
+    }
+  }
 
-   for(RPCRecHitCollection::const_iterator rechit_it = rechits->begin(); rechit_it != rechits->end() ; rechit_it++)
-   {
+  for(RPCRecHitCollection::const_iterator rechit_it = rechits->begin(); rechit_it != rechits->end() ; rechit_it++)
+  {
    	int bx = rechit_it->BunchX();
-
    	RPCDetId idRoll(rechit_it->rpcId());
-
    	LocalPoint lPos = rechit_it->localPosition();
    	const RPCRoll* roll = rpcGeo->roll(idRoll);
    	const BoundPlane& rollSurface = roll->surface();
    	GlobalPoint gPos = rollSurface.toGlobal(lPos);
    	TVector3 pos(gPos.x(),gPos.y(),gPos.z());
    	
-      double dr = hscpDir.DeltaR(pos);
+    double dr = hscpDir.DeltaR(pos);
    	fHdR->Fill(dr);
    	
-      if(dr < 0.15)
+    if(dr < 0.15)
 		{
 			vPos.push_back(pos);
 			vBx.push_back(bx);
 		}
-   }
-   
+  }
 	vector<double> params;
 	if (vPos.size() == 0) 
 	{
 		if(betaGen < 0.15) fHeta0->Fill(hscpDir.Eta());
 		fHbeta0->Fill(betaGen);
-
 	}
 	if (vPos.size() >= 1 ) 
 	{
 		fHbeta_tot->Fill(betaGen);
 		fHeta_tot->Fill(hscpDir.Eta());
 	}
-   if (vPos.size() > 2)	
-   {
+  if (vPos.size() > 2)	
+  {
    	params = doFit(vPos,vBx);
    	cout << "Fit parameters: " << params[0] << " " << params[1] << " " << params[2] << " " << params[3] << endl;
    	fHt0->Fill(params[0]);
@@ -266,10 +262,8 @@ HSCPRecHits::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
    		fHres->Fill(res);
    		fHbeta_pas->Fill(betaGen);
    	}
-   }
-   
-   fHnHits->Fill(vPos.size());
-
+  }
+  fHnHits->Fill(vPos.size());
 }
 
 
