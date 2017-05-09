@@ -173,7 +173,7 @@ HSCPRecHits::doFit(std::vector<TVector3> POS,std::vector<int> BX)
   a = (1/n)*(sy-b*sx);
   s = TMath::Sqrt((ssyy - b*ssxy)/(n-2));
   aStdErr = s * TMath::Sqrt((1/n)+(sx*sx/n*n*ssxx));
-  aStdErr = s/TMath::Sqrt(ssxx);
+  bStdErr = s/TMath::Sqrt(ssxx);
   
   vector<double> parameters;
   parameters.push_back(a);
