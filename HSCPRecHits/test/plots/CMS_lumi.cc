@@ -77,7 +77,7 @@ CMS_lumi( TPad* pad, int iPeriod, int iPosX )
       lumiText += lumi_13TeV_MC;
       //lumiText += " #surd s = 13 TeV";
       //lumiText += " (#sqrt{s} = 13 TeV)";
-     lumiText += " (13 TeV)";
+     lumiText += " (14 TeV)";
     }
    
   cout << lumiText << endl;

@@ -1,27 +1,33 @@
 import FWCore.ParameterSet.Config as cms
-import FWCore.Utilities.FileUtils as FileUtils
+import sys, os
 
-process = cms.Process("demo2")
+from Configuration.StandardSequences.Eras import eras
 
-process.load("FWCore.MessageService.MessageLogger_cfi")
-process.load("Geometry.MuonCommonData.muonIdealGeometryXML_cfi")
-process.load("Geometry.RPCGeometry.rpcGeometry_cfi")
-process.load("Geometry.MuonNumbering.muonNumberingInitialization_cfi")
+process = cms.Process("demo2", eras.Phase2C1)
 
-process.load("RecoLocalMuon.RPCRecHit.rpcRecHits_cfi")
-from RecoLocalMuon.RPCRecHit.rpcRecHits_cfi import *
+process.load('Configuration.StandardSequences.Services_cff')
+process.load('FWCore.MessageService.MessageLogger_cfi')
+process.load('Configuration.Geometry.GeometryExtended2023D12_cff')
+process.load('Configuration.Geometry.GeometryExtended2023D12Reco_cff')
+
+process.MessageLogger.cerr.FwkReport.reportEvery = 1000
+
+#process.load("RecoLocalMuon.RPCRecHit.rpcRecHits_cfi")
+#from RecoLocalMuon.RPCRecHit.rpcRecHits_cfi import *
 process.maxEvents = cms.untracked.PSet( input = cms.untracked.int32(-1) )
-
-mylist = FileUtils.loadListFromFile('list.txt')
 
 process.source = cms.Source("PoolSource",
     # replace 'myfile.root' with the source file you want to use
-        fileNames = cms.untracked.vstring (*mylist)
+        fileNames = cms.untracked.vstring (
+          #'/store/group/dpg_rpc/comm_rpc/Sandbox/garamire/HSCPppstau_M_1599_NoPU.root'
+          'file:/afs/cern.ch/user/g/garamire/work/private/HSCP_stau-m1599_NoPU/HSCPppstau_M_1599_NoPU.root',
+          )
 )
 process.load('test.HSCPRecHits.CfiFile_cfi')
 process.TFileService = cms.Service("TFileService",
                    	fileName = cms.string("m1599_Gate1_BX_ToF_RecHits_test.root")
 							)
 
-rpcRecHits.rpcDigiLabel = "simMuonRPCDigis"
-process.p = cms.Path(process.rpcRecHits*process.demo2)
+#rpcRecHits.rpcDigiLabel = "simMuonRPCDigis"
+#process.p = cms.Path(process.rpcRecHits*process.demo2)
+process.p = cms.Path(process.demo2)

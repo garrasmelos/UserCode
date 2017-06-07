@@ -42,6 +42,8 @@
 #include "SimDataFormats/GeneratorProducts/interface/GenRunInfoProduct.h"
 #include "DataFormats/HepMCCandidate/interface/GenParticle.h"
 #include "DataFormats/Common/interface/DetSetVector.h"
+#include "SimDataFormats/TrackingHit/interface/PSimHit.h"
+#include "SimDataFormats/TrackingHit/interface/PSimHitContainer.h"
 
 #include "FWCore/ServiceRegistry/interface/Service.h"
 #include "CommonTools/UtilAlgos/interface/TFileService.h"
@@ -61,6 +63,7 @@
 
 #include "TMath.h"
 #include "TH1.h"
+#include "TH2.h"
 #include "TTree.h"
 #include <vector>
 #include "TVector3.h"
@@ -74,7 +77,7 @@ class HSCPRecHits : public edm::EDAnalyzer {
       explicit HSCPRecHits(const edm::ParameterSet&);
       ~HSCPRecHits();
       
-      std::vector<double>  doFit(std::vector<TVector3> POS,std::vector<int> BX);
+      std::vector<double>  doFit(std::vector<TVector3> POS,std::vector<double> TIME);
 
       static void fillDescriptions(edm::ConfigurationDescriptions& descriptions);
 
@@ -90,20 +93,36 @@ class HSCPRecHits : public edm::EDAnalyzer {
 
       // ----------member data ---------------------------
     TH1D* fHnHits;
+    TH1D* fHnSimHits;
+    TH1D* fHnHitsDiff;
     TH1D* fHt0;
-    TH1D* fHbeta;
-    TH1D* fHeta_tot;
-    TH1D* fHbeta0;
-    TH1D* fHeta0;
+    TH1D* fHt0err;
+    TH1D* fHbetaGen;
+    TH1D* fHb;
+    TH1D* fHberr;
+    TH1D* fHbetaRPC;
+    TH1D* fHetaGen;
+    TH1D* fHbeta0hits;
+    TH1D* fHeta0hits;
+    TH1D* fHbeta1hits;
+    TH1D* fHeta1hits;
+    TH1D* fHbeta2hits;
+    TH1D* fHeta2hits;
     TH1D* fHbeta_pas;
+    TH1D* fHeta_pas;
+    TH1D* fHbeta_pas_SlopeCut;
+    TH1D* fHbeta_pas_BetaErrorCut;
+    TH1D* fHbeta_pas_BetaRelError;
     TH1D* fHbeta_tot;
+    TH1D* fHeta_tot;
+    TH2D* fHbetaEta_pas;
     TH1D* fHres;
     TH1D* fHdR;
     
       
     edm::EDGetTokenT<std::vector<reco::GenParticle>> genParToken_;
-      edm::EDGetTokenT<RPCRecHitCollection> recHitToken_;
-      
+    edm::EDGetTokenT<RPCRecHitCollection> recHitToken_;
+    edm::EDGetTokenT<edm::PSimHitContainer> simHitToken_;  
 };
 
 //
@@ -119,9 +138,10 @@ using namespace std;
 // constructors and destructor
 //
 HSCPRecHits::HSCPRecHits(const edm::ParameterSet& iConfig)
-:  fHnHits(0), fHt0(0), fHbeta(0), fHeta_tot(0), fHbeta0(0), fHeta0(0), fHbeta_pas(0), fHbeta_tot(0), fHres(0), fHdR(0),
+:  fHnHits(0), fHnSimHits(0), fHnHitsDiff(0), fHt0(0), fHt0err(0), fHbetaGen(0), fHb(0), fHberr(0), fHbetaRPC(0), fHetaGen(0), fHbeta0hits(0), fHeta0hits(0), fHbeta1hits(0), fHeta1hits(0),fHbeta2hits(0), fHeta2hits(0),fHbeta_pas(0), fHeta_pas(0), fHbeta_pas_SlopeCut(0), fHbeta_pas_BetaErrorCut(0), fHbeta_pas_BetaRelError(0),  fHbeta_tot(0), fHeta_tot(0),  fHbetaEta_pas(0), fHres(0), fHdR(0),
   genParToken_(consumes<std::vector<reco::GenParticle>>(iConfig.getParameter<edm::InputTag>("genParticlesLabel"))),
-  recHitToken_(consumes<RPCRecHitCollection>(iConfig.getParameter<edm::InputTag>("recHitLabel")))
+  recHitToken_(consumes<RPCRecHitCollection>(iConfig.getParameter<edm::InputTag>("recHitLabel"))),
+  simHitToken_(consumes<edm::PSimHitContainer>(iConfig.getParameter<edm::InputTag>("simHitLabel")))
 {
    //now do what ever initialization is needed
 
@@ -141,7 +161,7 @@ HSCPRecHits::~HSCPRecHits()
 // member functions
 //
 std::vector<double>
-HSCPRecHits::doFit(std::vector<TVector3> POS,std::vector<int> BX)
+HSCPRecHits::doFit(std::vector<TVector3> POS,std::vector<double> TIME)
 { 
   double s = 0;
   double sx = 0;
@@ -161,10 +181,10 @@ HSCPRecHits::doFit(std::vector<TVector3> POS,std::vector<int> BX)
   for(int i = 0 ; i < n;i++)
   {
     sx+= POS[i].Mag();
-    sy+= BX[i];
-    sxy+= POS[i].Mag()*BX[i];
+    sy+= TIME[i];
+    sxy+= POS[i].Mag()*TIME[i];
     sxx+= POS[i].Mag()*POS[i].Mag();
-    syy+= BX[i]*BX[i];
+    syy+= TIME[i]*TIME[i];
   }
   ssxy = sxy-sx*sy/n;
   ssxx = sxx-sx*sx/n;
@@ -187,7 +207,9 @@ HSCPRecHits::doFit(std::vector<TVector3> POS,std::vector<int> BX)
 void
 HSCPRecHits::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
 {
-   
+  Handle<PSimHitContainer> simhits;
+  iEvent.getByToken(simHitToken_,simhits); 
+
   Handle<RPCRecHitCollection> rechits;
   iEvent.getByToken(recHitToken_,rechits);
   
@@ -198,10 +220,10 @@ HSCPRecHits::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
   iEvent.getByToken(genParToken_,genParHandle);
 
   vector<TVector3> vPos; //array of positions.
-  vector<int> vBx;
+  vector<double> vTime;
   
   const double c = 29.979;
-  double betaGen=0;
+  double betaGen=0, etaGen=0;
   TVector3 hscpDir;
    
   if(genParHandle.isValid())
@@ -214,52 +236,95 @@ HSCPRecHits::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
         double sTauMass= pout.p4().M();
         betaGen= sqrt(sTauP*sTauP/(sTauP*sTauP+sTauMass*sTauMass));
         hscpDir.SetXYZ(pout.p4().Px(),pout.p4().Py(),pout.p4().Pz());       
+        etaGen= hscpDir.Eta();
       }
     }
   }
-  for(RPCRecHitCollection::const_iterator rechit_it = rechits->begin(); rechit_it != rechits->end() ; rechit_it++)
+  if(rechits.isValid())
   {
-    int bx = rechit_it->BunchX();
-    RPCDetId idRoll(rechit_it->rpcId());
-    LocalPoint lPos = rechit_it->localPosition();
-    const RPCRoll* roll = rpcGeo->roll(idRoll);
-    const BoundPlane& rollSurface = roll->surface();
-    GlobalPoint gPos = rollSurface.toGlobal(lPos);
-    TVector3 pos(gPos.x(),gPos.y(),gPos.z());
-    
-    double dr = hscpDir.DeltaR(pos);
-    fHdR->Fill(dr);
-
-    if(dr < 0.15)
+    for(RPCRecHitCollection::const_iterator rechit_it = rechits->begin(); rechit_it != rechits->end() ; rechit_it++)
     {
-      vPos.push_back(pos);
-      vBx.push_back(bx);
+      double time = rechit_it->time();
+      RPCDetId idRoll(rechit_it->rpcId());
+      LocalPoint lPos = rechit_it->localPosition();
+      const RPCRoll* roll = rpcGeo->roll(idRoll);
+      const BoundPlane& rollSurface = roll->surface();
+      GlobalPoint gPos = rollSurface.toGlobal(lPos);
+      TVector3 pos(gPos.x(),gPos.y(),gPos.z());
+      
+      double dr = hscpDir.DeltaR(pos);
+      fHdR->Fill(dr);
+
+      if(dr < 0.5)
+      {
+        vPos.push_back(pos);
+        vTime.push_back(time);
+      }
     }
   }
+  int nSimHits=0;
+  if(simhits.isValid())
+  {
+    for(auto& simhit : *simhits)
+    {
+      const int pid = simhit.particleType();
+      if ( pid == 1000015) nSimHits++;
+    }
+    fHnSimHits->Fill(nSimHits);
+    if(vPos.size() < 3) fHnHitsDiff->Fill(nSimHits-vPos.size());
+  }
+  fHbetaGen->Fill(betaGen);
+  fHetaGen->Fill(etaGen);
+
   vector<double> params;
   if (vPos.size() == 0) 
   {
-    if(betaGen < 0.15) fHeta0->Fill(hscpDir.Eta());
-    fHbeta0->Fill(betaGen);
+    fHbeta0hits->Fill(betaGen);
+    fHeta0hits->Fill(etaGen);
   }
-  if (vPos.size() >= 1 ) 
+  if (vPos.size() == 1)
   {
-    fHbeta_tot->Fill(betaGen);
-    fHeta_tot->Fill(hscpDir.Eta());
+    fHbeta1hits->Fill(betaGen);
+    fHeta1hits->Fill(etaGen);
+  }
+  if (vPos.size() == 2)
+  {
+    fHbeta2hits->Fill(betaGen);
+    fHeta2hits->Fill(etaGen);
   }
   if (vPos.size() > 2)  
   {
-    params = doFit(vPos,vBx);
-    cout << "Fit parameters: " << params[0] << " " << params[1] << " " << params[2] << " " << params[3] << endl;
+    fHbeta_tot->Fill(betaGen);
+    fHeta_tot->Fill(etaGen);
+    params = doFit(vPos,vTime);
     fHt0->Fill(params[0]);
+    fHt0err->Fill(params[1]);
+    fHb->Fill(params[2]);
+    fHberr->Fill(params[3]);
+
     double betaRPC = 1/((params[2]*c)+1);
-    if (params[3]/params[2] < 0.3 && params[2]>0 ) //
+    double betaRPCerr = (c*params[3])/((params[2]*c+1)*(params[2]*c+1));
+    double errFitCut = 0.3;
+    fHbetaRPC->Fill(betaRPC);
+    
+    if (TMath::Abs(betaRPCerr/betaRPC) < errFitCut && params[2]>0. ) //
     {
-      fHbeta->Fill(betaRPC);
       double res = (betaGen-betaRPC)/betaGen;
       fHres->Fill(res);
       fHbeta_pas->Fill(betaGen);
+      fHeta_pas->Fill(etaGen);
+      fHbetaEta_pas->Fill(betaGen,etaGen);
     }
+    //if ( params[2]>0. || (params[2]+params[3])>0. || (params[2]-params[3])>0. )
+    if ( params[2]>0.)
+    {
+      fHbeta_pas_SlopeCut->Fill(betaGen);
+    }
+    if (TMath::Abs(betaRPCerr/betaRPC) < errFitCut)
+    {
+      fHbeta_pas_BetaErrorCut->Fill(betaGen);
+    }
+    fHbeta_pas_BetaRelError->Fill(betaRPCerr/betaRPC);
   }
   fHnHits->Fill(vPos.size());
 }
@@ -271,13 +336,29 @@ HSCPRecHits::beginJob()
 {
   Service<TFileService> fs;
   fHnHits = fs->make<TH1D>("fHnHits", "n hits in sTau direction", 20, 0., 20. );
+  fHnSimHits = fs->make<TH1D>("fHnSimHits", "n stau simhits ", 20, 0., 20. );
+  fHnHitsDiff = fs->make<TH1D>("fHnHitsDiff", "Difference between the # of stau simhits and rechits ", 20, 0., 20. );
   fHt0 = fs->make<TH1D>("fHt0","initial time",100,-25.,25.);
-  fHbeta = fs->make<TH1D>("fHbeta","beta",150,-1.,2.);
-  fHeta_tot = fs->make<TH1D>("fHeta_tot","eta",50,-3.15,3.15);
-  fHbeta0 = fs->make<TH1D>("fHbeta0","beta for stau without rechits",50,0.,1.);
-  fHeta0 = fs->make<TH1D>("fHeta0","eta for stau without rechits",50,-3.15,3.15);
+  fHt0err = fs->make<TH1D>("fHt0err","initial time error",100,-25.,25.);
+  fHbetaGen = fs->make<TH1D>("fHbetaGen","beta Gen",150,-1.,2.);
+  fHetaGen = fs->make<TH1D>("fHetaGen","eta Gen",50,-3.15,3.15);
+  fHb = fs->make<TH1D>("fHb","b",80,-2.,2.);
+  fHberr = fs->make<TH1D>("fHberr","b error",60,-3.,3.);
+  fHbetaRPC = fs->make<TH1D>("fHbetaRPC","betaRPC",80,-2.,2.);
+  fHbeta0hits = fs->make<TH1D>("fHbeta0hits","beta for stau without rechits",50,0.,1.);
+  fHeta0hits = fs->make<TH1D>("fHeta0hits","eta for stau without rechits",50,-3.15,3.15);
+  fHbeta1hits = fs->make<TH1D>("fHbeta1hits","beta for stau with 1 rechits",50,0.,1.);
+  fHeta1hits = fs->make<TH1D>("fHeta1hits","eta for stau with 1 rechits",50,-3.15,3.15);
+  fHbeta2hits = fs->make<TH1D>("fHbeta2hits","beta for stau with 2 rechits",50,0.,1.);
+  fHeta2hits = fs->make<TH1D>("fHeta2hits","eta for stau with 2 rechits",50,-3.15,3.15);
   fHbeta_pas = fs->make<TH1D>("fHbeta_pas","beta generated pas",50,0.,1.);
-  fHbeta_tot = fs->make<TH1D>("fHbeta_tot","beta generated tot",50,0.,1.);
+  fHbeta_pas_SlopeCut = fs->make<TH1D>("fHbeta_pas_SlopeCut","beta generated pas Slope slope cut",50,0.,1.);
+  fHbeta_pas_BetaErrorCut = fs->make<TH1D>("fHbeta_pas_BetaErrorCut","beta generated pas BetaErrorCut",50,0.,1.);
+  fHbeta_pas_BetaRelError = fs->make<TH1D>("fHbeta_pas_BetaRelError","beta generated relative error",100,-2.,2.);
+  fHbeta_tot = fs->make<TH1D>("fHbeta_tot","betaGen afteer 3 hits cut",50,0.,1.);
+  fHeta_tot = fs->make<TH1D>("fHeta_tot","etaGen after 3 hits cut",50,-3.15,3.15);
+  fHeta_pas = fs->make<TH1D>("fHeta_pas","etaGen after all cuts",50,-3.15,3.15);
+  fHbetaEta_pas = fs->make<TH2D>("fHbetaEta_pas","fHbetaEta_pas", 50,0.,1., 50, -3.15,3.15);
   fHres = fs->make<TH1D>("fHres","Beta resolution",60,-3.,3.);
   fHdR = fs->make<TH1D>("fHdR","fHdR",50,0.,5.);
   return;
@@ -288,40 +369,6 @@ void
 HSCPRecHits::endJob() 
 {
 }
-
-// ------------ method called when starting to processes a run  ------------
-/*
-void 
-HSCPRecHits::beginRun(edm::Run const&, edm::EventSetup const&)
-{
-}
-*/
-
-// ------------ method called when ending the processing of a run  ------------
-/*
-void 
-HSCPRecHits::endRun(edm::Run const&, edm::EventSetup const&)
-{
-}
-*/
-
-// ------------ method called when starting to processes a luminosity block  ------------
-/*
-void 
-HSCPRecHits::beginLuminosityBlock(edm::LuminosityBlock const&, edm::EventSetup const&)
-{
-}
-*/
-
-// ------------ method called when ending the processing of a luminosity block  ------------
-/*
-void 
-HSCPRecHits::endLuminosityBlock(edm::LuminosityBlock const&, edm::EventSetup const&)
-{
-}
-*/
-
-// ------------ method fills 'descriptions' with the allowed parameters for the module  ------------
 void
 HSCPRecHits::fillDescriptions(edm::ConfigurationDescriptions& descriptions) {
   //The following says we do not know what parameters are allowed so do no validation
