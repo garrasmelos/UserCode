@@ -21,7 +21,7 @@ process.source = cms.Source("PoolSource",
 )
 process.load('test.HSCPTrigger.CfiFile_cfi')
 process.TFileService = cms.Service("TFileService",
-                   	fileName = cms.string("m1599_Gate1_BX_ToF_RecHits_test.root")
+                   	fileName = cms.string("m1599_MuTrigger.root")
 							)
 
 #rpcRecHits.rpcDigiLabel = "simMuonRPCDigis"

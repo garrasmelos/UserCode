@@ -198,8 +198,8 @@ void
 HSCPTrigger::beginJob()
 {
 	edm::Service<TFileService> fs;
-	fHbeta_pas = fs->make<TH1D>("fHbeta_pas", "Beta of triggered sTau", 100, 0., 1. );
-	fHbeta_tot = fs->make<TH1D>("fHbeta_tot", "Beta of tot sTau", 100, 0., 1. );
+	fHbeta_pas = fs->make<TH1D>("fHbeta_pas", "Beta of triggered sTau", 50, 0., 1. );
+	fHbeta_tot = fs->make<TH1D>("fHbeta_tot", "Beta of tot sTau", 50, 0., 1. );
 	return;
 }
 

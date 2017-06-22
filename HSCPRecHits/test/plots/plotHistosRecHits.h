@@ -15,7 +15,8 @@ TH1F* fHBetaGenRes = new TH1F("fHBetaGenRes","fHBetaGenRes",100,-3.,3.);
 TH2F* fHist2DBx_Station = new TH2F("fHist2DBx_Station", "fHist2DBx_Station", 6, 1, 7, 20, 0, 20);
 TH2F* fHist2DBetaVsEta = new TH2F("fHist2DBetaVsEta", "fHist2DBetaVsEta", 40, 0., 1., 40, -3.1416, 3.1416);
 
-TString infile = "m1599_Gate1_BX_ToF_RecHits";
+//TString infile = "m1599_RecHits";
+TString infile2 = "m1599_MuTrigger";
 TString intreeRecHit = "demo2/rechitTree";
 TString intreeEff = "demo2/effTree";
 //TString outName = "Bx";
