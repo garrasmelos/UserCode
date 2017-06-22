@@ -26,7 +26,7 @@ process.source = cms.Source("PoolSource",
          '/store/group/dpg_rpc/comm_rpc/Sandbox/garamire/HSCP_MC_GEN-SIM-Jan2017/HSCP_MC_GEN-SIM-Jan2017/170124_092652/0000/step1_15.root'
     )
 )
-process.load('test.HSCPDIGIS.CfiFile_cfi')
+process.load('HSCPAnalysis.HSCPDIGIS.CfiFile_cfi')
 process.TFileService = cms.Service("TFileService",
                    fileName = cms.string("hTest.root")
                    )

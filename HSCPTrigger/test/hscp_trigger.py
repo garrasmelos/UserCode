@@ -19,7 +19,7 @@ process.source = cms.Source("PoolSource",
     #fileNames = cms.untracked.vstring ('file:/eos/cms/store/user/federica/HSCP_Simulation/HSCP_mass1599_AODSIM/step2_1_1.root')
     fileNames = cms.untracked.vstring (*mylist)
 )
-process.load('test.HSCPTrigger.CfiFile_cfi')
+process.load('HSCPAnalysis.HSCPTrigger.CfiFile_cfi')
 process.TFileService = cms.Service("TFileService",
                    	fileName = cms.string("m1599_MuTrigger.root")
 							)

@@ -48,7 +48,7 @@ process.source = cms.Source("PoolSource",
           #'/store/mc/PhaseIIFall16DR82/HSCPppstau_M_871_TuneCUETP8M1_14TeV_pythia8/AODSIM/PU200_90X_upgrade2023_realistic_v1-v2/90000/02E4DD49-D9FD-E611-A063-02163E01449D.root'
           )
 )
-process.load('test.HSCPRecHits.CfiFile_cfi')
+process.load('HSCPAnalysis.HSCPRecHits.CfiFile_cfi')
 process.TFileService = cms.Service("TFileService",
                    	fileName = cms.string("ZMM_RecHits.root")
                     #fileName = cms.string(HSCP_MuTrigger_RecHits.root")

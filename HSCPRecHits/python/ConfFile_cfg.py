@@ -19,7 +19,7 @@ process.source = cms.Source("PoolSource",
         	fileNames = cms.untracked.vstring (*mylist)
 )
 
-process.load('test.HSCPRecHits.CfiFile_cfi')
+process.load('HSCPAnalysis.HSCPRecHits.CfiFile_cfi')
 process.TFileService = cms.Service("TFileService",
       	fileName = cms.string("m247_Gate1_BX_ToF_RecHits.root")
 )

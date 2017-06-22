@@ -25,7 +25,7 @@ process.source = cms.Source("PoolSource",
     #)
 )
 
-process.load('test.HSCPSIMHits.CfiFile_cfi')
+process.load('iHSCPAnalysis.HSCPSIMHits.CfiFile_cfi')
 process.TFileService = cms.Service("TFileService",
              fileName = cms.string("hTest.root")
 )
