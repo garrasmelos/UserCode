@@ -1,25 +1,3 @@
-// -*- C++ -*-
-//
-// Package:    test/HSCPRecHits
-// Class:      HSCPRecHits
-// 
-/**\class HSCPRecHits HSCPRecHits.cc test/HSCPRecHits/plugins/HSCPRecHits.cc
-
- Description: [one line class summary]
-
- Implementation:
-     [Notes on implementation]
-*/
-//
-// Original Author:  Gabriel Ramirez Sanchez
-//         Created:  Fri, 10 Mar 2017 16:04:25 GMT
-//
-//
-
-
-// system include files
-
-
 #include <memory>
 #include <iostream>
 // user include files
@@ -79,12 +57,10 @@ class HSCPRecHits : public edm::EDAnalyzer {
       
       std::vector<double>  doFit(std::vector<TVector3> POS,std::vector<double> TIME);
       UInt_t getTriggerBits(const edm::Event& iEvent, std::vector<std::string> TestFilterNames_);
-      static void fillDescriptions(edm::ConfigurationDescriptions& descriptions);
 
    private:
       virtual void beginJob() override;
       virtual void analyze(const edm::Event&, const edm::EventSetup&) override;
-      virtual void endJob() override;
 
       //virtual void beginRun(edm::Run const&, edm::EventSetup const&) override;
       //virtual void endRun(edm::Run const&, edm::EventSetup const&) override;
@@ -92,45 +68,12 @@ class HSCPRecHits : public edm::EDAnalyzer {
       //virtual void endLuminosityBlock(edm::LuminosityBlock const&, edm::EventSetup const&) override;
 
       // ----------member data ---------------------------
-    TH1D* fHnHits;
-    TH1D* fHnSimHits;
-    TH1D* fHnHitsDiff;
-    TH1D* fHnBx;
-    TH1D* fHrpcHitsTime;
-    TH1D* fHt0;
-    TH1D* fHt0_bx;
-    TH1D* fHt0err;
-    TH1D* fHbetaGen;
-    TH1D* fHb;
-    TH1D* fHberr;
-    TH1D* fHbetaRPC;
-    TH1D* fHetaGen;
-    TH1D* fHbeta0Simhits;
-    TH1D* fHeta0Simhits;
-    TH1D* fHbeta1Simhits;
-    TH1D* fHeta1Simhits;
-    TH1D* fHbeta2Simhits;
-    TH1D* fHeta2Simhits;
-    TH1D* fHbeta0hits;
-    TH1D* fHeta0hits;
-    TH1D* fHbeta1hits;
-    TH1D* fHeta1hits;
-    TH1D* fHbeta2hits;
-    TH1D* fHeta2hits;
-    TH1D* fHbeta_pas;
-    TH1D* fHeta_pas;
-    TH1D* fHbetaRPC_pas;
-    TH1D* fHbeta_pas_SlopeCut;
-    TH1D* fHbeta_pas_BetaErrorCut;
-    TH1D* fHbeta_pas_BetaRelError;
-    TH1D* fHbeta_tot;
-    TH1D* fHeta_tot;
-    TH2D* fHbetaEta_pas;
-    TH1D* fHres;
-    TH1D* fHdR;
-    TH1D* fHdRsim;
-    TH1D* fHMuTrigger_tot;
-    TH1D* fHMuTrigger_pas;
+    TTree* tree_;
+    const static unsigned short rpcHits_N=100;
+    unsigned short b_rpcHits_n;
+    unsigned int b_trig;
+    double b_rpcBeta, b_rpcBetaErr, b_fitSlope, b_genBeta, b_t0, b_t0_bx, b_genEta; 
+    double b_rpcTime[rpcHits_N];
       
     edm::EDGetTokenT<std::vector<reco::GenParticle>> genParToken_;
     edm::EDGetTokenT<RPCRecHitCollection> recHitToken_;
@@ -153,8 +96,7 @@ using namespace std;
 // constructors and destructor
 //
 HSCPRecHits::HSCPRecHits(const edm::ParameterSet& iConfig)
-:  fHnHits(0), fHnSimHits(0), fHnHitsDiff(0), fHnBx(0), fHrpcHitsTime(0), fHt0(0), fHt0_bx(0), fHt0err(0), fHbetaGen(0), fHb(0), fHberr(0), fHbetaRPC(0), fHetaGen(0), fHbeta0Simhits(0), fHeta0Simhits(0), fHbeta1Simhits(0), fHeta1Simhits(0),fHbeta2Simhits(0), fHeta2Simhits(0),fHbeta0hits(0), fHeta0hits(0), fHbeta1hits(0), fHeta1hits(0),fHbeta2hits(0), fHeta2hits(0),fHbeta_pas(0), fHeta_pas(0), fHbetaRPC_pas(0), fHbeta_pas_SlopeCut(0), fHbeta_pas_BetaErrorCut(0), fHbeta_pas_BetaRelError(0),  fHbeta_tot(0), fHeta_tot(0),  fHbetaEta_pas(0), fHres(0), fHdR(0), fHdRsim(0), fHMuTrigger_tot(0), fHMuTrigger_pas(0),
-  genParToken_(consumes<std::vector<reco::GenParticle>>(iConfig.getParameter<edm::InputTag>("genParticlesLabel"))),
+:  genParToken_(consumes<std::vector<reco::GenParticle>>(iConfig.getParameter<edm::InputTag>("genParticlesLabel"))),
   recHitToken_(consumes<RPCRecHitCollection>(iConfig.getParameter<edm::InputTag>("recHitLabel"))),
   simHitToken_(consumes<edm::PSimHitContainer>(iConfig.getParameter<edm::InputTag>("simHitLabel"))),
   triggerToken_(consumes<edm::TriggerResults>(iConfig.getParameter<edm::InputTag>("triggerLabel"))),
@@ -162,18 +104,10 @@ HSCPRecHits::HSCPRecHits(const edm::ParameterSet& iConfig)
   pId_(iConfig.getParameter<int>("particleId"))
 {
    //now do what ever initialization is needed
-
 }
-
-
 HSCPRecHits::~HSCPRecHits()
 {
- 
-   // do anything here that needs to be done at desctruction time
-   // (e.g. close files, deallocate resources etc.)
-
 }
-
 
 //
 // member functions
@@ -213,7 +147,6 @@ HSCPRecHits::doFit(std::vector<TVector3> POS,std::vector<double> TIME)
   aStdErr = s * TMath::Sqrt((1/n)+(sx*sx/n*n*ssxx));
   bStdErr = s/TMath::Sqrt(ssxx);
   
-  //std::cout << "b :" << b << std::endl;  
   vector<double> parameters;
   parameters.push_back(a);
   parameters.push_back(aStdErr);
@@ -243,8 +176,7 @@ UInt_t HSCPRecHits::getTriggerBits(const edm::Event& iEvent, std::vector<std::st
         break;
       }
     }
-  } else std::cout << "HSCPTrigger::getTriggerBits: **** No triggers found ****" << std::endl;
-  //std::cout << trigger << std::endl;
+  }// else std::cout << "HSCPTrigger::getTriggerBits: **** No triggers found ****" << std::endl;
    return trigger;
 }	
 // ------------ method called for each event  ------------
@@ -270,10 +202,12 @@ HSCPRecHits::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
   
   const double c = 29.979;
   double betaGen=0, etaGen=0;
+  b_rpcBeta=b_rpcBetaErr=b_t0=b_t0_bx=b_fitSlope=-10000.;
+  
   TVector3 hscpDir(0,0,0);
  
-  UInt_t trig = getTriggerBits(iEvent,triggNames_);
-  //int pId_=13;//1000015; 
+  b_trig = getTriggerBits(iEvent,triggNames_);
+  
   if(genParHandle.isValid())
   {
     for (auto& pout : *genParHandle)
@@ -289,7 +223,8 @@ HSCPRecHits::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
     }
   }
   if(rechits.isValid() && hscpDir.Mag()!=0.)
-  {
+  { 
+    int j=0;
     for(RPCRecHitCollection::const_iterator rechit_it = rechits->begin(); rechit_it != rechits->end() ; rechit_it++)
     {
       double time = rechit_it->time();
@@ -303,18 +238,17 @@ HSCPRecHits::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
       
       double dr = hscpDir.DeltaR(pos);
       
-      fHnBx->Fill(bx*25);
-      fHdR->Fill(dr);
-      fHrpcHitsTime->Fill(time);
       if(dr < 0.5)
       {
+        b_rpcTime[j] = time;
+        j++;
         vPos.push_back(pos);
         vBx.push_back(bx*25.);
-        //cout << "time: " << time << endl;
-        //cout << "dist: " << pos.Mag() << endl;
         vTime.push_back(time);
       }
     }
+    if(j>20)cout << j << endl;
+    b_rpcHits_n = j;
   }
   int nSimHits=0;
   if(simhits.isValid())
@@ -330,103 +264,29 @@ HSCPRecHits::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
       TVector3 posSim(gPosSim.x(), gPosSim.y(), gPosSim.z()); 
       
       double drSim = hscpDir.DeltaR(posSim);
-      fHdRsim->Fill(drSim);
       
       if(drSim < 0.5) vPosSim.push_back(posSim);
       nSimHits++;
     }
-    fHnSimHits->Fill(nSimHits);
-    if(vPos.size() < 3) fHnHitsDiff->Fill(nSimHits-vPos.size());
   }
-  fHbetaGen->Fill(betaGen);
-  fHetaGen->Fill(etaGen);
   vector<double> params;
   vector<double> params_bx;
- 
-
-
-  if (vPosSim.size() == 0)
-  {
-    fHbeta0Simhits->Fill(betaGen);
-    fHeta0Simhits->Fill(etaGen);
-  }
-
-  if (vPosSim.size() == 1)
-  {
-    fHbeta1Simhits->Fill(betaGen);
-    fHeta1Simhits->Fill(etaGen);
-  }
-  if (vPosSim.size() == 2)
-  {
-    fHbeta2Simhits->Fill(betaGen);
-    fHeta2Simhits->Fill(etaGen);
-  }
-
-
- 
-  if (vPos.size() == 0) 
-  {
-    fHbeta0hits->Fill(betaGen);
-    fHeta0hits->Fill(etaGen);
-  }
-  if (vPos.size() == 1)
-  {
-    fHbeta1hits->Fill(betaGen);
-    fHeta1hits->Fill(etaGen);
-  }
-  if (vPos.size() == 2)
-  {
-    fHbeta2hits->Fill(betaGen);
-    fHeta2hits->Fill(etaGen);
-  }
   if (vPos.size() > 2)  
   {
-    fHbeta_tot->Fill(betaGen);
-    fHeta_tot->Fill(etaGen);
     params = doFit(vPos,vTime);
-    fHt0->Fill(params[0]);
-    fHt0err->Fill(params[1]);
-    fHb->Fill(params[2]);
-    fHberr->Fill(params[3]);
 
-    double betaRPC = 1/((params[2]*c)+1);
-    double betaRPCerr = (c*params[3])/((params[2]*c+1)*(params[2]*c+1));
-    double errFitCut = 0.3;
-    fHbetaRPC->Fill(betaRPC);
+    b_genBeta = betaGen;
+    b_genEta = etaGen;
+    b_t0 = params[0];
+    b_rpcBeta = 1/((params[2]*c)+1);
+    b_rpcBetaErr = (c*params[3])/((params[2]*c+1)*(params[2]*c+1));
+    b_fitSlope = params[2];
     
-    if (TMath::Abs(betaRPCerr/betaRPC) < errFitCut && params[2]>0. && betaRPC < 0.7)
-    //if (TMath::Abs(betaRPCerr/betaRPC) < errFitCut && params[2]>0.)
-    {
-      double res = (betaGen-betaRPC)/betaGen;
-      fHres->Fill(res);
-      fHbeta_pas->Fill(betaGen);
-      fHbetaRPC_pas->Fill(betaRPC);
-      fHeta_pas->Fill(etaGen);
-      fHbetaEta_pas->Fill(betaGen,etaGen);
-    }
-    //if ( params[2]>0. || (params[2]+params[3])>0. || (params[2]-params[3])>0. )
-    if ( params[2]>0.)
-    {
-      fHbeta_pas_SlopeCut->Fill(betaGen);
-    }
-    if (TMath::Abs(betaRPCerr/betaRPC) < errFitCut)
-    {
-      fHbeta_pas_BetaErrorCut->Fill(betaGen);
-    }
-    fHbeta_pas_BetaRelError->Fill(betaRPCerr/betaRPC);
     //Fit using bx
     params_bx = doFit(vPos,vBx);
-    fHt0_bx->Fill(params_bx[0]);
-    //double betaRPC_bx = 1/((params_bx[2]*c)+1);
-    //double betaRPCerr_bx = (c*params_bx[3])/((params_bx[2]*c+1)*(params_bx[2]*c+1));
-    //if (TMath::Abs(betaRPCerr_bx/betaRPC_bx) < errFitCut && params_bx[2]>0. && betaRPC_bx < 0.7)
-    //{
-      
-    //}
+    b_t0_bx = params_bx[0];
   }
-  fHnHits->Fill(vPos.size());
-  fHMuTrigger_tot->Fill(betaGen);
-  if(trig) fHMuTrigger_pas->Fill(betaGen);
+  if(b_rpcHits_n < 20) tree_->Fill();
 }
 
 
@@ -435,61 +295,17 @@ void
 HSCPRecHits::beginJob()
 {
   Service<TFileService> fs;
-  fHnHits = fs->make<TH1D>("fHnHits", "n hits in sTau direction", 20, 0., 20. );
-  fHnSimHits = fs->make<TH1D>("fHnSimHits", "n stau simhits ", 20, 0., 20. );
-  fHnHitsDiff = fs->make<TH1D>("fHnHitsDiff", "Difference between the # of stau simhits and rechits ", 20, 0., 20. );
-  fHnBx = fs->make<TH1D>("fHnBx","fHnBx", 150, -37.5, 112.5);
-  fHrpcHitsTime = fs->make<TH1D>("fHrpcHitsTime", "fHrpcHitsTime",600,-10., 50.);//,40,-10.5,49.5);
-  fHt0 = fs->make<TH1D>("fHt0","initial time",300,-150.,150.);
-  fHt0_bx = fs->make<TH1D>("fHt0_bx","initial bx",300,-150.,150.);
-  fHt0err = fs->make<TH1D>("fHt0err","initial time error",150,-37.5,112.5);
-  fHbetaGen = fs->make<TH1D>("fHbetaGen","beta Gen",150,-1.,2.);
-  fHetaGen = fs->make<TH1D>("fHetaGen","eta Gen",50,-3.15,3.15);
-  fHb = fs->make<TH1D>("fHb","b",80,-2.,2.);
-  fHberr = fs->make<TH1D>("fHberr","b error",60,-3.,3.);
-  fHbetaRPC = fs->make<TH1D>("fHbetaRPC","betaRPC",80,-2.,2.);
-  fHbeta0hits = fs->make<TH1D>("fHbeta0hits","beta for stau without rechits",50,0.,1.);
-  fHeta0hits = fs->make<TH1D>("fHeta0hits","eta for stau without rechits",50,-3.15,3.15);
-  fHbeta1hits = fs->make<TH1D>("fHbeta1hits","beta for stau with 1 rechits",50,0.,1.);
-  fHeta1hits = fs->make<TH1D>("fHeta1hits","eta for stau with 1 rechits",50,-3.15,3.15);
-  fHbeta2hits = fs->make<TH1D>("fHbeta2hits","beta for stau with 2 rechits",50,0.,1.);
-  fHeta2hits = fs->make<TH1D>("fHeta2hits","eta for stau with 2 rechits",50,-3.15,3.15);
-  fHbeta0Simhits = fs->make<TH1D>("fHbeta0Simhits","beta for stau without rechits",50,0.,1.);
-  fHeta0Simhits = fs->make<TH1D>("fHeta0Simhits","eta for stau without rechits",50,-3.15,3.15);
-  fHbeta1Simhits = fs->make<TH1D>("fHbeta1Simhits","beta for stau with 1 rechits",50,0.,1.);
-  fHeta1Simhits = fs->make<TH1D>("fHeta1Simhits","eta for stau with 1 rechits",50,-3.15,3.15);
-  fHbeta2Simhits = fs->make<TH1D>("fHbeta2Simhits","beta for stau with 2 rechits",50,0.,1.);
-  fHeta2Simhits = fs->make<TH1D>("fHeta2Simhits","eta for stau with 2 rechits",50,-3.15,3.15);
-  fHbeta_pas = fs->make<TH1D>("fHbeta_pas","beta generated pas",50,0.,1.);
-  fHbetaRPC_pas = fs->make<TH1D>("fHbetaRPC_pas","betaRPC pas",150,-3.,3.);
-  fHbeta_pas_SlopeCut = fs->make<TH1D>("fHbeta_pas_SlopeCut","beta generated pas Slope slope cut",50,0.,1.);
-  fHbeta_pas_BetaErrorCut = fs->make<TH1D>("fHbeta_pas_BetaErrorCut","beta generated pas BetaErrorCut",50,0.,1.);
-  fHbeta_pas_BetaRelError = fs->make<TH1D>("fHbeta_pas_BetaRelError","beta generated relative error",100,-2.,2.);
-  fHbeta_tot = fs->make<TH1D>("fHbeta_tot","betaGen afteer 3 hits cut",50,0.,1.);
-  fHeta_tot = fs->make<TH1D>("fHeta_tot","etaGen after 3 hits cut",50,-3.15,3.15);
-  fHeta_pas = fs->make<TH1D>("fHeta_pas","etaGen after all cuts",50,-3.15,3.15);
-  fHbetaEta_pas = fs->make<TH2D>("fHbetaEta_pas","fHbetaEta_pas", 50,0.,1., 50, -3.15,3.15);
-  fHres = fs->make<TH1D>("fHres","Beta resolution",60,-3.,3.);
-  fHdR = fs->make<TH1D>("fHdR","fHdR",50,0.,5.);
-  fHdRsim = fs->make<TH1D>("fHdRsim","fHdRsim",50,0.,5.);
-  fHMuTrigger_pas = fs->make<TH1D>("fHMuTrigger_pas","fHMuTrigger_pas",50,0.,1.);
-  fHMuTrigger_tot = fs->make<TH1D>("fHMuTrigger_tot","fHMuTrigger_tot",50,0.,1.);
+  tree_ = fs->make<TTree>("tree","tree");
+  tree_->Branch("rpcHits_n", &b_rpcHits_n, "rpcHits_n/s");
+  tree_->Branch("rpcBeta", &b_rpcBeta, "rpcBeta/d");
+  tree_->Branch("rpcBetaErr", &b_rpcBetaErr, "rpcBetaErr/d");
+  tree_->Branch("rpcTime", b_rpcTime, "rpcTime[rpcHits_n]/D");
+  tree_->Branch("t0", &b_t0, "t0/d");
+  tree_->Branch("t0_bx", &b_t0_bx, "t0_bx/d");
+  tree_->Branch("genBeta", &b_genBeta, "genBeta/d");
+  tree_->Branch("genEta", &b_genEta, "genEta/d");
+  tree_->Branch("fitSlope", &b_fitSlope, "fitSlope/d");
+  tree_->Branch("trig", &b_trig, "trig/I");
   return;
 }
-
-// ------------ method called once each job just after ending the event loop  ------------
-void 
-HSCPRecHits::endJob() 
-{
-}
-void
-HSCPRecHits::fillDescriptions(edm::ConfigurationDescriptions& descriptions) {
-  //The following says we do not know what parameters are allowed so do no validation
-  // Please change this to state exactly what you do use, even if it is no parameters
-  edm::ParameterSetDescription desc;
-  desc.setUnknown();
-  descriptions.addDefault(desc);
-}
-
-//define this as a plug-in
 DEFINE_FWK_MODULE(HSCPRecHits);

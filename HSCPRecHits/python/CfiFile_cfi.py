@@ -8,7 +8,7 @@ demo2 = cms.EDAnalyzer('HSCPRecHits',
               triggNames = cms.vstring(
                'HLT_L1SingleMuOpen_v3'
               ),
-              #particleId = cms.int32(1000015)
-              particleId = cms.int32(13)
+              particleId = cms.int32(1000015)
+              #particleId = cms.int32(13)
 
 )	
