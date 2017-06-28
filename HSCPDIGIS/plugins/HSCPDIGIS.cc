@@ -170,7 +170,9 @@ HSCPDIGIS::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
          int particleId =itdigi->getParticleType();
 		 //bx = itdigi->getBx();
 		 //hscpTree->Fill();
-         if(TMath::Abs(particleId) == 13 && itdigi->getTrackId()==1)
+         //int pId = 13; //Muons
+         int pId = 1000015; //sTau
+         if(TMath::Abs(particleId) == pId && itdigi->getTrackId()==1)
          {
             DetId theDetId = itdigi->getDetUnitId();
             RPCDetId rollId(theDetId);
