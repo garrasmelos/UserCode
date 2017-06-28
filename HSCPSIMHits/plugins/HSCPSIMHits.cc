@@ -1,22 +1,3 @@
-// -*- C++ -*-
-//
-// Package:    test/HSCPSIMHits
-// Class:      HSCPSIMHits
-// 
-/**\class HSCPSIMHits HSCPSIMHits.cc test/HSCPSIMHits/plugins/HSCPSIMHits.cc
-
- Description: [one line class summary]
-
- Implementation:
-     [Notes on implementation]
-*/
-//
-// Original Author:  Gabriel Ramirez Sanchez
-//         Created:  Tue, 14 Feb 2017 12:08:09 GMT
-//
-//
-
-
 // system include files
 #include <memory>
 #include <iostream>
@@ -26,28 +7,23 @@
 
 #include "FWCore/Framework/interface/Event.h"
 #include "FWCore/Framework/interface/MakerMacros.h"
+#include "FWCore/Utilities/interface/InputTag.h"
 
 #include "FWCore/ParameterSet/interface/ParameterSet.h"
 
-#include "SimDataFormats/GeneratorProducts/interface/HepMCProduct.h"
-#include "SimDataFormats/GeneratorProducts/interface/GenEventInfoProduct.h"
-#include "SimDataFormats/GeneratorProducts/interface/GenRunInfoProduct.h"
-#include "SimDataFormats/Vertex/interface/SimVertex.h"
-#include "SimDataFormats/Vertex/interface/SimVertexContainer.h"
+#include "DataFormats/HepMCCandidate/interface/GenParticle.h"
+#include "SimDataFormats/TrackingHit/interface/PSimHit.h"
 #include "SimDataFormats/TrackingHit/interface/PSimHitContainer.h"
 
 //#include "FastSimulation/Tracking/test/FastTrackAnalyzer.h"
 
 #include "DataFormats/Common/interface/Handle.h"
-#include <DataFormats/RPCRecHit/interface/RPCRecHit.h>
-#include "DataFormats/RPCRecHit/interface/RPCRecHitCollection.h"
 #include <DataFormats/MuonDetId/interface/RPCDetId.h>
 #include "DataFormats/MuonDetId/interface/MuonSubdetId.h"
 #include <DataFormats/GeometrySurface/interface/LocalError.h>
 #include <DataFormats/GeometryVector/interface/LocalPoint.h>
 #include "DataFormats/GeometrySurface/interface/Surface.h"
 #include "DataFormats/DetId/interface/DetId.h"
-
 #include "FWCore/MessageLogger/interface/MessageLogger.h"
 #include "FWCore/ServiceRegistry/interface/Service.h"
 #include "FWCore/Framework/interface/ESHandle.h"
@@ -75,7 +51,6 @@ public:
   explicit HSCPSIMHits(const edm::ParameterSet&);
   ~HSCPSIMHits();
   edm::ESHandle <RPCGeometry> rpcGeo;
-  static void fillDescriptions(edm::ConfigurationDescriptions& descriptions);
   virtual void beginRun(const edm::Run&, const edm::EventSetup&);
   
 private:
@@ -117,8 +92,7 @@ private:
   TH1D* fHisttofEndCapB3;
   TH1D* fHisttofEndCapB4;
   edm::EDGetTokenT<std::vector<PSimHit>> hitsToken_;
-  edm::EDGetTokenT<GenEventInfoProduct> genEventInfo_;
-  edm::EDGetTokenT<edm::HepMCProduct> hepEventInfo_;
+  edm::EDGetTokenT<reco::GenParticleCollection> genParToken_;
 };
 
 //
@@ -162,45 +136,25 @@ HSCPSIMHits::HSCPSIMHits(const edm::ParameterSet& iConfig):
   fHisttofEndCapB3(0), 
   fHisttofEndCapB4(0),
   hitsToken_(consumes<std::vector<PSimHit>>(iConfig.getParameter<edm::InputTag>("hitsLabel"))),
-  genEventInfo_(consumes<GenEventInfoProduct>(iConfig.getParameter<edm::InputTag>("genEventInfo"))),
-  hepEventInfo_(consumes<edm::HepMCProduct>(iConfig.getParameter<edm::InputTag>("hepEventInfo"))){
-  
-  //now do what ever initialization is needed
-  
+  genParToken_(consumes<reco::GenParticleCollection>(iConfig.getParameter<edm::InputTag>("genParticleLabel")))
+{ 
 }
 
 
 HSCPSIMHits::~HSCPSIMHits()
 {
   
-  // do anything here that needs to be done at desctruction time
-  // (e.g. close files, deallocate resources etc.)
-  
 }
-
-
-//
-// member functions
-//
-
-// ------------ method called for each event  ------------
 void
 HSCPSIMHits::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup){
- 
-  Handle<GenEventInfoProduct> GetInfoHandle;
-  iEvent.getByToken(genEventInfo_, GetInfoHandle); 
-  
-  Handle< HepMCProduct > EvtHandle;
-  iEvent.getByToken(hepEventInfo_, EvtHandle);
-  const HepMC::GenEvent* Evt = EvtHandle->GetEvent();
- 
+
+  Handle<reco::GenParticleCollection> genParticleHandle;
+  iEvent.getByToken(genParToken_,genParticleHandle); 
+      
   Handle< std::vector<PSimHit>> hits;
   iEvent.getByToken(hitsToken_, hits);
   
-  HepMC::GenParticle* sTau=0;
-  HepMC::GenParticle* sTauBar=0;
   TLorentzVector sTau_p4;
-  //HepMC::ThreeVector sTau_p3;
   TLorentzVector sTauBar_p4;
   double tof=0;
   double sTauP=0;
@@ -212,90 +166,76 @@ HSCPSIMHits::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup){
   const double d=3.5;
   const double c=0.0003; //light speed in m/ps
 
-  for (HepMC::GenEvent::vertex_const_iterator vit = Evt->vertices_begin(); vit != Evt->vertices_end(); vit++){
-    for(HepMC::GenVertex::particles_out_const_iterator pout=(*vit)->particles_out_const_begin(); pout!=(*vit)->particles_out_const_end(); pout++){
-      if( (*pout)->pdg_id() == 1000015 ){
-	sTau = (*pout);
+  if(genParticleHandle.isValid())
+  {
+    for(auto& pout : *genParticleHandle)
+    {
+      if( pout.pdgId() == 1000015 ){
+        sTau_p4.SetPxPyPzE(pout.p4().Px(),pout.p4().Py(),pout.p4().Pz(),pout.p4().E());
       }
-      if( (*pout)->pdg_id() == -1000015 ){
-	sTauBar = (*pout);
-      }
-      if(sTauBar!=0 && sTau!=0){
-	sTau_p4.SetPxPyPzE(sTau->momentum().px(),sTau->momentum().py(),sTau->momentum().pz(),sTau->momentum().e());
-	//sTau_p3 = HepMC::ThreeVector((sTau->momentum().px()),(sTau->momentum().py()),(sTau->momentum().pz()));
-	cout << "Status/particleID: " << (*pout)->status() <<"/"<< (*pout)->pdg_id() << endl;
-	sTauP = sTau_p4.P();
-	sTauMass= sTau_p4.M();   //sTau->generatedMass();
-	sTauBeta= sqrt(sTauP*sTauP/(sTauP*sTauP+sTauMass*sTauMass));
-	tof =(d/c)*(1/sTauBeta); 
-	
-	fHisttof->Fill(tof);
-	fHistSTauMass->Fill(sTauMass);
-	fHistSTauP->Fill(sTauP);
-	fHistSTauEta->Fill(sTau_p4.Eta());
-	fHistSTauEtaBeta->Fill(sTauBeta,abs(sTau_p4.Eta()));
-	fHistSTauPhi->Fill(sTau_p4.Phi());
-	fHistSTauBeta->Fill(sTauBeta);
-	if(abs(sTau_p4.Eta())>1.6){
-	  fHistAcc->Fill(1.);
-	  if(tof>50) fHistAcc->Fill(2.);
-	  if(tof>100) fHistAcc->Fill(3.);
-	  if(tof>200) fHistAcc->Fill(4.);
-	  if(tof>1000) fHistAcc->Fill(5.);
-	  if(tof>2000) fHistAcc->Fill(6.);
-	  if(tof>4000) fHistAcc->Fill(7.);
-	  if(tof>10000) fHistAcc->Fill(8.);
-	  if(tof>25000) fHistAcc->Fill(9.);
-	}
-	sTauBar_p4.SetPxPyPzE(sTauBar->momentum().px(),sTauBar->momentum().py(),sTauBar->momentum().pz(),sTauBar->momentum().e());
-	fHistSTauBarEta->Fill(sTauBar_p4.Eta());
-	fHistEta->Fill(sTau_p4.Eta(),sTauBar_p4.Eta());
-	
-	angle = sTauBar_p4.Angle(sTau_p4.Vect());
-	fHistAngle->Fill(angle);
-	if(sTau_p4.Phi()<0){
-	  if(sTauBar_p4.Phi()<0)deltaPhi = abs(sTau_p4.Phi()-sTauBar_p4.Phi());
-	  else deltaPhi = abs(sTau_p4.Phi()+2*pi-sTauBar_p4.Phi());
-	} else {
-	  if(sTauBar_p4.Phi()<0)deltaPhi = abs(sTauBar_p4.Phi()+2*pi-sTau_p4.Phi());
-	  else deltaPhi = abs(sTau_p4.Phi()-sTauBar_p4.Phi());
-	}
-	fHistDeltaPhi->Fill(deltaPhi);
-	break;
+      if( pout.pdgId() == -1000015 ){
+        sTauBar_p4.SetPxPyPzE(pout.p4().Px(),pout.p4().Py(),pout.p4().Pz(),pout.p4().E());
       }
     }
-    //if (sTauBar!=0 && sTau!=0){
-    //  break;
-    //}
-    
   }
-
-  for(vector<PSimHit>::const_iterator iHit = hits->begin(); iHit != hits->end(); iHit++){
-    if((int)abs((*iHit).particleType())== 1000015) {
-      DetId theDetUnitId = DetId((*iHit).detUnitId());
-      DetId simdetid= DetId((*iHit).detUnitId());
+  
+  sTauP = sTau_p4.P();
+  sTauMass= sTau_p4.M();   
+  sTauBeta= sqrt(sTauP*sTauP/(sTauP*sTauP+sTauMass*sTauMass));
+  tof =(d/c)*(1/sTauBeta); 
+ 
+  fHisttof->Fill(tof);
+  fHistSTauMass->Fill(sTauMass);
+  fHistSTauP->Fill(sTauP);
+  fHistSTauEta->Fill(sTau_p4.Eta());
+  fHistSTauEtaBeta->Fill(sTauBeta,abs(sTau_p4.Eta()));
+  fHistSTauPhi->Fill(sTau_p4.Phi());
+  fHistSTauBeta->Fill(sTauBeta);
+  if(abs(sTau_p4.Eta())>1.6){
+    fHistAcc->Fill(1.);
+    if(tof>50) fHistAcc->Fill(2.);
+    if(tof>100) fHistAcc->Fill(3.);
+    if(tof>200) fHistAcc->Fill(4.);
+    if(tof>1000) fHistAcc->Fill(5.);
+    if(tof>2000) fHistAcc->Fill(6.);
+    if(tof>4000) fHistAcc->Fill(7.);
+    if(tof>10000) fHistAcc->Fill(8.);
+    if(tof>25000) fHistAcc->Fill(9.);
+  }
+  fHistSTauBarEta->Fill(sTauBar_p4.Eta());
+  fHistEta->Fill(sTau_p4.Eta(),sTauBar_p4.Eta());
+  //TODO: Correct dR implementation. 
+  angle = sTauBar_p4.Angle(sTau_p4.Vect());
+  fHistAngle->Fill(angle);
+  fHistDeltaPhi->Fill(deltaPhi);
+ 
+  for(auto& iHit : *hits)
+  {
+    if((int)abs(iHit.particleType())== 1000015) {
+      DetId theDetUnitId = DetId(iHit.detUnitId());
+      DetId simdetid= DetId(iHit.detUnitId());
       
       if(simdetid.det()==DetId::Muon &&  simdetid.subdetId()== MuonSubdetId::RPC){
-	RPCDetId rollId(theDetUnitId);
-	RPCGeomServ rpcsrv(rollId);
-	//const RPCRoll * rollasociated = rpcGeo->roll(rollId);
-	//const BoundPlane & RPCSurface = rollasociated->surface();
-	//GlobalPoint SimHitInGlobal = RPCSurface.toGlobal((*iHit).localPosition());
-	if(rollId.station()==1 && rollId.region()==1) fHisttofHits->Fill((*iHit).timeOfFlight());
-	if(rollId.station()==1 && rollId.region()==0 && rollId.layer()==1) fHisttofBarrel1_in->Fill((*iHit).timeOfFlight());
-	if(rollId.station()==1 && rollId.region()==0 && rollId.layer()==2) fHisttofBarrel1_out->Fill((*iHit).timeOfFlight());
-	if(rollId.station()==2 && rollId.region()==0 && rollId.layer()==1) fHisttofBarrel2_in->Fill((*iHit).timeOfFlight());
-	if(rollId.station()==2 && rollId.region()==0 && rollId.layer()==2) fHisttofBarrel2_out->Fill((*iHit).timeOfFlight());
-	if(rollId.station()==3 && rollId.region()==0) fHisttofBarrel3->Fill((*iHit).timeOfFlight());
-	if(rollId.station()==4 && rollId.region()==0) fHisttofBarrel4->Fill((*iHit).timeOfFlight());
-	if(rollId.station()==1 && rollId.region()==1) fHisttofEndCapF1->Fill((*iHit).timeOfFlight());
-	if(rollId.station()==2 && rollId.region()==1) fHisttofEndCapF2->Fill((*iHit).timeOfFlight());
-	if(rollId.station()==3 && rollId.region()==1) fHisttofEndCapF3->Fill((*iHit).timeOfFlight());
-	if(rollId.station()==4 && rollId.region()==1) fHisttofEndCapF4->Fill((*iHit).timeOfFlight());
-	if(rollId.station()==1 && rollId.region()==-1) fHisttofEndCapB1->Fill((*iHit).timeOfFlight());
-	if(rollId.station()==2 && rollId.region()==-1) fHisttofEndCapB2->Fill((*iHit).timeOfFlight());
-	if(rollId.station()==3 && rollId.region()==-1) fHisttofEndCapB3->Fill((*iHit).timeOfFlight());
-	if(rollId.station()==4 && rollId.region()==-1) fHisttofEndCapB4->Fill((*iHit).timeOfFlight());
+    	RPCDetId rollId(theDetUnitId);
+    	RPCGeomServ rpcsrv(rollId);
+    	//const RPCRoll * rollasociated = rpcGeo->roll(rollId);
+    	//const BoundPlane & RPCSurface = rollasociated->surface();
+    	//GlobalPoint SimHitInGlobal = RPCSurface.toGlobal((*iHit).localPosition());
+    	if(rollId.station()==1 && rollId.region()==1) fHisttofHits->Fill(iHit.timeOfFlight());
+    	if(rollId.station()==1 && rollId.region()==0 && rollId.layer()==1) fHisttofBarrel1_in->Fill(iHit.timeOfFlight());
+    	if(rollId.station()==1 && rollId.region()==0 && rollId.layer()==2) fHisttofBarrel1_out->Fill(iHit.timeOfFlight());
+    	if(rollId.station()==2 && rollId.region()==0 && rollId.layer()==1) fHisttofBarrel2_in->Fill(iHit.timeOfFlight());
+    	if(rollId.station()==2 && rollId.region()==0 && rollId.layer()==2) fHisttofBarrel2_out->Fill(iHit.timeOfFlight());
+    	if(rollId.station()==3 && rollId.region()==0) fHisttofBarrel3->Fill(iHit.timeOfFlight());
+    	if(rollId.station()==4 && rollId.region()==0) fHisttofBarrel4->Fill(iHit.timeOfFlight());
+    	if(rollId.station()==1 && rollId.region()==1) fHisttofEndCapF1->Fill(iHit.timeOfFlight());
+    	if(rollId.station()==2 && rollId.region()==1) fHisttofEndCapF2->Fill(iHit.timeOfFlight());
+    	if(rollId.station()==3 && rollId.region()==1) fHisttofEndCapF3->Fill(iHit.timeOfFlight());
+    	if(rollId.station()==4 && rollId.region()==1) fHisttofEndCapF4->Fill(iHit.timeOfFlight());
+    	if(rollId.station()==1 && rollId.region()==-1) fHisttofEndCapB1->Fill(iHit.timeOfFlight());
+    	if(rollId.station()==2 && rollId.region()==-1) fHisttofEndCapB2->Fill(iHit.timeOfFlight());
+    	if(rollId.station()==3 && rollId.region()==-1) fHisttofEndCapB3->Fill(iHit.timeOfFlight());
+    	if(rollId.station()==4 && rollId.region()==-1) fHisttofEndCapB4->Fill(iHit.timeOfFlight());
       }
     }
   }
@@ -346,48 +286,6 @@ HSCPSIMHits::beginJob()
 void 
 HSCPSIMHits::endJob() 
 {
-}
-
-// ------------ method called when starting to processes a run  ------------
-/*
-void 
-HSCPSIMHits::beginRun(edm::Run const&, edm::EventSetup const&)
-{
-}
-*/
-
-// ------------ method called when ending the processing of a run  ------------
-/*
-void 
-HSCPSIMHits::endRun(edm::Run const&, edm::EventSetup const&)
-{
-}
-*/
-
-// ------------ method called when starting to processes a luminosity block  ------------
-/*
-void 
-HSCPSIMHits::beginLuminosityBlock(edm::LuminosityBlock const&, edm::EventSetup const&)
-{
-}
-*/
-
-// ------------ method called when ending the processing of a luminosity block  ------------
-/*
-void 
-HSCPSIMHits::endLuminosityBlock(edm::LuminosityBlock const&, edm::EventSetup const&)
-{
-}
-*/
-
-// ------------ method fills 'descriptions' with the allowed parameters for the module  ------------
-void
-HSCPSIMHits::fillDescriptions(edm::ConfigurationDescriptions& descriptions) {
-  //The following says we do not know what parameters are allowed so do no validation
-  // Please change this to state exactly what you do use, even if it is no parameters
-  edm::ParameterSetDescription desc;
-  desc.setUnknown();
-  descriptions.addDefault(desc);
 }
 
 //define this as a plug-in
