@@ -30,6 +30,7 @@
 #include "Geometry/RPCGeometry/interface/RPCGeomServ.h"
 #include <Geometry/RPCGeometry/interface/RPCRoll.h>
 #include <Geometry/RPCGeometry/interface/RPCGeometry.h>
+#include "Geometry/CommonTopologies/interface/TrapezoidalStripTopology.h"
 #include <Geometry/Records/interface/MuonGeometryRecord.h>
 #include <Geometry/CommonDetUnit/interface/GeomDet.h>
 #include "DataFormats/RPCDigi/interface/RPCDigiCollection.h"
@@ -73,7 +74,7 @@ class HSCPRecHits : public edm::EDAnalyzer {
     unsigned short b_rpcHits_n;
     unsigned int b_trig;
     double b_rpcBeta, b_rpcBetaErr, b_fitSlope, b_genBeta, b_t0, b_t0_bx, b_genEta; 
-    double b_rpcTime[rpcHits_N];
+    double b_rpcHitTime[rpcHits_N], b_rpcHitPos[rpcHits_N],b_rpcHitTimeErr[rpcHits_N], b_rpcHitPosErr[rpcHits_N];
       
     edm::EDGetTokenT<std::vector<reco::GenParticle>> genParToken_;
     edm::EDGetTokenT<RPCRecHitCollection> recHitToken_;
@@ -228,19 +229,31 @@ HSCPRecHits::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
     for(RPCRecHitCollection::const_iterator rechit_it = rechits->begin(); rechit_it != rechits->end() ; rechit_it++)
     {
       double time = rechit_it->time();
+      double timeErr = rechit_it->timeError();
       int bx = rechit_it->BunchX();
       RPCDetId idRoll(rechit_it->rpcId());
       LocalPoint lPos = rechit_it->localPosition();
       const RPCRoll* roll = rpcGeo->roll(idRoll);
+      double stripLength = roll->specificTopology().stripLength();
       const BoundPlane& rollSurface = roll->surface();
       GlobalPoint gPos = rollSurface.toGlobal(lPos);
       TVector3 pos(gPos.x(),gPos.y(),gPos.z());
       
+      //Create a point to compute the error in the position.
+      LocalPoint lPosEdge(lPos.x(),stripLength/2,0.);
+      GlobalPoint gPosEdge = rollSurface.toGlobal(lPosEdge);
+      TVector3 posEdge(gPosEdge.x(),gPosEdge.y(),gPosEdge.z());
+
+
       double dr = hscpDir.DeltaR(pos);
-      
+      //Filling arrays with time and position of the rpdHits found inside a cone around de 
+      //direction of the Gen particle. 
       if(dr < 0.5)
       {
-        b_rpcTime[j] = time;
+        b_rpcHitTime[j] = time;
+        b_rpcHitPos[j] = pos.Mag();
+        b_rpcHitTimeErr[j] =  timeErr;//stripLength/c;
+        b_rpcHitPosErr[j] = TMath::Abs(pos.Mag()-posEdge.Mag());
         j++;
         vPos.push_back(pos);
         vBx.push_back(bx*25.);
@@ -299,7 +312,10 @@ HSCPRecHits::beginJob()
   tree_->Branch("rpcHits_n", &b_rpcHits_n, "rpcHits_n/s");
   tree_->Branch("rpcBeta", &b_rpcBeta, "rpcBeta/d");
   tree_->Branch("rpcBetaErr", &b_rpcBetaErr, "rpcBetaErr/d");
-  tree_->Branch("rpcTime", b_rpcTime, "rpcTime[rpcHits_n]/D");
+  tree_->Branch("rpcHitTime", b_rpcHitTime, "rpcHitTime[rpcHits_n]/D");
+  tree_->Branch("rpcHitTimeErr", b_rpcHitTimeErr, "rpcHitTimeErr[rpcHits_n]/D");
+  tree_->Branch("rpcHitPos", b_rpcHitPos, "rpcHitPos[rpcHits_n]/D");
+  tree_->Branch("rpcHitPosErr", b_rpcHitPosErr, "rpcHitPosErr[rpcHits_n]/D");
   tree_->Branch("t0", &b_t0, "t0/d");
   tree_->Branch("t0_bx", &b_t0_bx, "t0_bx/d");
   tree_->Branch("genBeta", &b_genBeta, "genBeta/d");
