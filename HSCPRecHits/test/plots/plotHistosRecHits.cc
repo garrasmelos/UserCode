@@ -171,7 +171,7 @@ int plotHistosRecHits()
   for(Long64_t i = 0 ; i < nEntries ; i++)
   {
     tree->GetEntry(i);
-    if(rpcHits_n >=4 )
+    if( fabs(genBeta) < = 2.4 )
     {
       vector<double> fitRes = fitWithErrors(rpcHits_n, rpcHitTime,rpcHitTimeErr,rpcHitPos,rpcHitPosErr);
       fHtimeNewFit->Fill(fitRes[0]);
@@ -179,7 +179,7 @@ int plotHistosRecHits()
       fHBeta_resolution->Fill(res);
       double res_bx = (genBeta-rpcBeta_bx)/genBeta;
       fHBeta_resolution_bx->Fill(res_bx);
-      if(fitSlope > 0 && rpcBetaErr/rpcBeta < 0.3 && rpcBeta<0.7)
+      if(fitSlope > 0 && rpcBetaErr/rpcBeta < 0.3 && rpcBeta<0.7 && rpcHits_n >=4)
       {
         fHBeta_pas->Fill(genBeta);
         fHEta_pas->Fill(genEta);
