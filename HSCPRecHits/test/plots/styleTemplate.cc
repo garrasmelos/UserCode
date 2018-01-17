@@ -87,10 +87,10 @@ void setStyleTemplate() {
   // styleTemplate->SetStatY(Float_t y = 0);
 
 // Margins:
-  styleTemplate->SetPadTopMargin(0.05);
-  styleTemplate->SetPadBottomMargin(0.13);
-  styleTemplate->SetPadLeftMargin(0.13);
-  styleTemplate->SetPadRightMargin(0.05);
+//  styleTemplate->SetPadTopMargin(0.05);
+//  styleTemplate->SetPadBottomMargin(0.13);
+//  styleTemplate->SetPadLeftMargin(0.13);
+//  styleTemplate->SetPadRightMargin(0.05);
 
 // For the Global title:
 
@@ -128,9 +128,9 @@ void setStyleTemplate() {
   styleTemplate->SetLabelSize(0.04, "XYZ");
 
 // For the axis:
-  TGaxis::SetMaxDigits(3);
+  //TGaxis::SetMaxDigits(3);
   styleTemplate->SetAxisColor(1, "XYZ");
-  styleTemplate->SetStripDecimals(kTRUE);
+  //styleTemplate->SetStripDecimals(kTRUE);
   styleTemplate->SetTickLength(0.03, "XYZ");
   styleTemplate->SetNdivisions(510, "XYZ");
   styleTemplate->SetPadTickX(1);  // To get tick marks on the opposite side of the frame

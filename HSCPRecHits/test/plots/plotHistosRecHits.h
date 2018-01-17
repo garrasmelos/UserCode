@@ -13,9 +13,9 @@ using namespace std;
 
 
 //TString infile = "m1599_RecHits";
-TString infile = "HSCP_RecHits.root";
-TString infile2 = "HSCP_MuTrigger_RecHits.root";
-TString infile3 = "ZMM_RecHits.root";
+TString infile = "rootFiles/HSCP_Rechits.root";
+TString infile2 = "rootFiles/HSCP_MuTrigger_RecHits.root";
+TString infile3 = "rootFiles/ZMM_RecHits.root";
   
 TFile* fin = new TFile(infile);
 TFile* fin2 = new TFile(infile2);
