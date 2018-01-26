@@ -139,15 +139,13 @@ HSCPRecHits::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
 
   iSetup.get<MuonGeometryRecord>().get(rpcGeo);
 
-  double betaGen=0, etaGen=0;
-  b_rpcBeta=b_rpcBetaErr=b_t0=b_t0_bx=b_rpcBeta_bx=b_fitSlope=-10000.;
-  
   b_trig = getTriggerBits(iEvent,triggNames_);
   // Getting the generated particle intial direction. 
   if(genParHandle.isValid())
   {
     for (auto& pout : *genParHandle)
     { 
+      b_rpcBeta=b_rpcBetaErr=b_t0=b_t0_bx=b_rpcBeta_bx=b_fitSlope=-10000.;
       //cout << pout.pdgId() << endl;
       //cout << "Status" << pout.status() << endl;
       
@@ -155,10 +153,11 @@ HSCPRecHits::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
       {
         double sTauP = pout.p4().P();
         double sTauMass= pout.p4().M();
-        betaGen= sqrt(sTauP*sTauP/(sTauP*sTauP+sTauMass*sTauMass));
+        b_genBeta= sqrt(sTauP*sTauP/(sTauP*sTauP+sTauMass*sTauMass));
         hscpDir.SetXYZ(pout.p4().Px(),pout.p4().Py(),pout.p4().Pz());       
-        etaGen= hscpDir.Eta();
+        b_genEta= hscpDir.Eta();
         b_charge = pout.charge();
+        b_genP = sTauP;
         //cout << etaGen << endl;
         //cout << pout.charge() << endl;
         //Finding the rpcHits and simHits inside the cone define 
@@ -182,10 +181,6 @@ HSCPRecHits::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
         {
           params = doFit(vPos,vTime);
 
-          b_genBeta = betaGen;
-          b_genEta = etaGen;
-          b_genP = sTauP;
-          //cout << etaGen << endl;
           b_t0 = params[0];
           b_rpcBeta = 1/((params[2]*c)+1);
           double gamma = 1/TMath::Sqrt(1-b_rpcBeta*b_rpcBeta);
